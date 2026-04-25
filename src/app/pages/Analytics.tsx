@@ -1,13 +1,38 @@
-import { BarChart3, TrendingUp, Film, Clock, Calendar, Star, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { BarChart3, TrendingUp, Film, Clock, Calendar, Star, User, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { StarRating } from '../components/StarRating';
+import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+
+const CustomPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-card border border-border rounded-lg p-4 shadow-lg max-w-xs">
+        <p className="text-foreground font-semibold mb-2">{data.name}</p>
+        <p className="text-muted-foreground text-sm mb-2">{data.value} movies</p>
+        {data.movies && (
+          <div className="border-t border-border pt-2 mt-2">
+            <p className="text-xs text-muted-foreground mb-1">Movies:</p>
+            <ul className="text-xs text-foreground space-y-0.5">
+              {data.movies.map((movie: string, index: number) => (
+                <li key={index}>{movie}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
 
 export function Analytics() {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState('year');
   const [expandedDirector, setExpandedDirector] = useState<number | null>(null);
+  const [showMoviesOverlay, setShowMoviesOverlay] = useState(false);
 
   // Mock data for charts
   const moviesByMonth = [
@@ -26,21 +51,81 @@ export function Analytics() {
   ];
 
   const genreDistribution = [
-    { name: 'Drama', value: 28, color: '#d4af37' },
-    { name: 'Action', value: 22, color: '#3949ab' },
-    { name: 'Sci-Fi', value: 18, color: '#5c6bc0' },
-    { name: 'Thriller', value: 15, color: '#7986cb' },
-    { name: 'Comedy', value: 10, color: '#9fa8da' },
-    { name: 'Other', value: 7, color: '#283593' }
+    {
+      name: 'Drama',
+      value: 28,
+      color: '#d4af37',
+      movies: ['The Shawshank Redemption', 'Forrest Gump', 'The Godfather', 'Schindler\'s List', 'Fight Club', '+ 23 more']
+    },
+    {
+      name: 'Action',
+      value: 22,
+      color: '#3949ab',
+      movies: ['The Dark Knight', 'Die Hard', 'Mad Max: Fury Road', 'The Matrix', 'John Wick', '+ 17 more']
+    },
+    {
+      name: 'Sci-Fi',
+      value: 18,
+      color: '#5c6bc0',
+      movies: ['Inception', 'Interstellar', 'Blade Runner 2049', 'The Matrix', 'Arrival', '+ 13 more']
+    },
+    {
+      name: 'Thriller',
+      value: 15,
+      color: '#7986cb',
+      movies: ['Se7en', 'The Silence of the Lambs', 'Zodiac', 'The Prestige', 'Gone Girl', '+ 10 more']
+    },
+    {
+      name: 'Comedy',
+      value: 10,
+      color: '#9fa8da',
+      movies: ['The Grand Budapest Hotel', 'Superbad', 'The Big Lebowski', 'Groundhog Day', '+ 6 more']
+    },
+    {
+      name: 'Other',
+      value: 7,
+      color: '#283593',
+      movies: ['Various genres', 'Documentary', 'Musical', 'Western', '+ 3 more']
+    }
   ];
 
   const countryDistribution = [
-    { name: 'France', value: 32, color: '#d4af37' },
-    { name: 'USA', value: 45, color: '#3949ab' },
-    { name: 'UK', value: 18, color: '#5c6bc0' },
-    { name: 'Japan', value: 15, color: '#7986cb' },
-    { name: 'South Korea', value: 12, color: '#9fa8da' },
-    { name: 'Other', value: 30, color: '#283593' }
+    {
+      name: 'France',
+      value: 32,
+      color: '#d4af37',
+      movies: ['Amélie', 'La Haine', 'Portrait of a Lady on Fire', 'The Intouchables', 'Blue Is the Warmest Colour', '+ 27 more']
+    },
+    {
+      name: 'USA',
+      value: 45,
+      color: '#3949ab',
+      movies: ['The Shawshank Redemption', 'The Godfather', 'Pulp Fiction', 'Forrest Gump', 'The Dark Knight', '+ 40 more']
+    },
+    {
+      name: 'UK',
+      value: 18,
+      color: '#5c6bc0',
+      movies: ['Trainspotting', '28 Days Later', 'Hot Fuzz', 'The King\'s Speech', 'Shaun of the Dead', '+ 13 more']
+    },
+    {
+      name: 'Japan',
+      value: 15,
+      color: '#7986cb',
+      movies: ['Spirited Away', 'Seven Samurai', 'Your Name', 'Perfect Blue', 'Akira', '+ 10 more']
+    },
+    {
+      name: 'South Korea',
+      value: 12,
+      color: '#9fa8da',
+      movies: ['Parasite', 'Oldboy', 'The Handmaiden', 'Memories of Murder', 'Train to Busan', '+ 7 more']
+    },
+    {
+      name: 'Other',
+      value: 30,
+      color: '#283593',
+      movies: ['Various countries', 'Germany', 'Italy', 'Spain', 'Brazil', '+ 25 more']
+    }
   ];
 
   const ratingDistribution = [
@@ -117,6 +202,42 @@ export function Analytics() {
     }
   ];
 
+  // All movies for overlay (using dummy data matching the stats)
+  const allMovies = [
+    { id: 1, title: "The Dark Knight", year: 2008, posterUrl: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg", rating: 4.75, dateWatched: "2026-04-08" },
+    { id: 2, title: "Parasite", year: 2019, posterUrl: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg", rating: 5, dateWatched: "2026-04-05" },
+    { id: 3, title: "Interstellar", year: 2014, posterUrl: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg", rating: 4.5, dateWatched: "2026-04-01" },
+    { id: 4, title: "The Godfather", year: 1972, posterUrl: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg", rating: 5, dateWatched: "2026-03-28" },
+    { id: 5, title: "Pulp Fiction", year: 1994, posterUrl: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg", rating: 4.75, dateWatched: "2026-03-25" },
+    { id: 6, title: "The Matrix", year: 1999, posterUrl: "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg", rating: 4.75, dateWatched: "2026-03-20" },
+    { id: 7, title: "Goodfellas", year: 1990, posterUrl: "https://image.tmdb.org/t/p/w500/aKuFiU82s5ISJpGZp7YkIr3kCUd.jpg", rating: 4.5, dateWatched: "2026-03-15" },
+    { id: 8, title: "Fight Club", year: 1999, posterUrl: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg", rating: 4.25, dateWatched: "2026-03-10" },
+    { id: 9, title: "Inception", year: 2010, posterUrl: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg", rating: 4.75, dateWatched: "2026-03-05" },
+    { id: 10, title: "The Shawshank Redemption", year: 1994, posterUrl: "https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg", rating: 5, dateWatched: "2026-03-01" },
+    { id: 104, title: "Oppenheimer", year: 2023, posterUrl: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg", rating: 5.0, dateWatched: "2026-02-12" },
+    { id: 105, title: "The Departed", year: 2006, posterUrl: "https://image.tmdb.org/t/p/w500/nT97ifVT2J1yMQmeq20Qblg61T.jpg", rating: 4.75, dateWatched: "2026-02-08" },
+  ];
+
+  // Filter movies based on timeRange
+  const getFilteredMovies = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    return allMovies.filter(movie => {
+      const movieDate = new Date(movie.dateWatched);
+      const movieMonth = movieDate.getMonth();
+      const movieYear = movieDate.getFullYear();
+
+      if (timeRange === 'month') {
+        return movieMonth === currentMonth && movieYear === currentYear;
+      } else if (timeRange === 'year') {
+        return movieYear === currentYear;
+      }
+      return true;
+    });
+  };
+
   const stats = {
     totalMovies: 152,
     totalRuntime: 18240, // in minutes
@@ -124,6 +245,15 @@ export function Analytics() {
     moviesThisMonth: 12,
     longestMovie: { title: 'The Irishman', runtime: 209 },
     shortestMovie: { title: 'Sherlock Jr.', runtime: 45 },
+    highestRated: [
+      { title: 'Oppenheimer', rating: 5.0, year: 2023 },
+      { title: 'Parasite', rating: 5.0, year: 2019 },
+      { title: 'The Shawshank Redemption', rating: 5.0, year: 1994 }
+    ],
+    lowestRated: [
+      { title: 'The Room', rating: 1.5, year: 2003 },
+      { title: 'Battlefield Earth', rating: 1.75, year: 2000 }
+    ],
     mostWatchedGenre: 'Drama',
     favouriteDecade: '1990s',
     uniqueDirectors: 87
@@ -197,6 +327,12 @@ export function Analytics() {
           </div>
           <p className="text-3xl text-foreground font-semibold">{stats.totalMovies}</p>
           <p className="text-sm text-muted-foreground mt-1">+{stats.moviesThisMonth} this month</p>
+          <button
+            onClick={() => setShowMoviesOverlay(true)}
+            className="mt-3 w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
+          >
+            See all movies
+          </button>
         </div>
 
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
@@ -266,18 +402,11 @@ export function Analytics() {
                 dataKey="value"
                 style={{ fontSize: '11px' }}
               >
-                {genreDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {genreDistribution.map((entry) => (
+                  <Cell key={`genre-${entry.name}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#141937',
-                  border: '1px solid rgba(156, 169, 218, 0.2)',
-                  borderRadius: '8px',
-                  color: '#e8eaf6'
-                }}
-              />
+              <Tooltip content={<CustomPieTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -298,18 +427,11 @@ export function Analytics() {
                 dataKey="value"
                 style={{ fontSize: '11px' }}
               >
-                {countryDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {countryDistribution.map((entry) => (
+                  <Cell key={`country-${entry.name}`} fill={entry.color} />
                 ))}
               </Pie>
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#141937',
-                  border: '1px solid rgba(156, 169, 218, 0.2)',
-                  borderRadius: '8px',
-                  color: '#e8eaf6'
-                }}
-              />
+              <Tooltip content={<CustomPieTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -422,7 +544,7 @@ export function Analytics() {
       </div>
 
       {/* Fun Facts */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-xl text-foreground mb-4">Longest Movie</h2>
           <p className="text-2xl text-foreground font-semibold mb-2">{stats.longestMovie.title}</p>
@@ -435,6 +557,115 @@ export function Analytics() {
           <p className="text-muted-foreground">{formatRuntime(stats.shortestMovie.runtime)}</p>
         </div>
       </div>
+
+      {/* Highest and Lowest Rated */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
+          <h2 className="text-xl text-foreground mb-4">Highest Rated</h2>
+          <div className="space-y-3">
+            {stats.highestRated.map((movie, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div>
+                  <p className="text-foreground font-semibold">{movie.title}</p>
+                  <p className="text-sm text-muted-foreground">{movie.year}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StarRating rating={movie.rating} size={14} />
+                  <span className="text-primary font-semibold">{movie.rating.toFixed(1)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
+          <h2 className="text-xl text-foreground mb-4">Lowest Rated</h2>
+          <div className="space-y-3">
+            {stats.lowestRated.map((movie, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div>
+                  <p className="text-foreground font-semibold">{movie.title}</p>
+                  <p className="text-sm text-muted-foreground">{movie.year}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StarRating rating={movie.rating} size={14} />
+                  <span className="text-muted-foreground font-semibold">{movie.rating.toFixed(1)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Movies Overlay */}
+      {showMoviesOverlay && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Overlay Header */}
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <div>
+                <h2 className="text-2xl text-foreground mb-1">
+                  {timeRange === 'month' ? 'This Month' : 'This Year'} - Movies Archive
+                </h2>
+                <p className="text-muted-foreground">
+                  {getFilteredMovies().length} {getFilteredMovies().length === 1 ? 'movie' : 'movies'} watched {timeRange === 'month' ? 'this month' : 'this year'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowMoviesOverlay(false)}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Overlay Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {getFilteredMovies().map((movie) => (
+                  <div
+                    key={movie.id}
+                    onClick={() => {
+                      setShowMoviesOverlay(false);
+                      navigate(`/review/${movie.id}`);
+                    }}
+                    className="bg-card rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                  >
+                    <div className="relative overflow-hidden aspect-[2/3]">
+                      <ImageWithFallback
+                        src={movie.posterUrl}
+                        alt={movie.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-2">
+                        <div className="flex items-center gap-1">
+                          <StarRating rating={movie.rating} size={12} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2">
+                      <h3 className="text-xs text-foreground line-clamp-1">{movie.title}</h3>
+                      <p className="text-xs text-muted-foreground">{movie.year}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {getFilteredMovies().length === 0 && (
+                <div className="text-center py-12">
+                  <Film className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-foreground mb-2">No movies found</h3>
+                  <p className="text-muted-foreground">
+                    No movies watched {timeRange === 'month' ? 'this month' : 'this year'} yet
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

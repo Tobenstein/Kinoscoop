@@ -61,7 +61,7 @@ export function CSVImporter() {
             return obj;
           })
           .map(row => ({
-            movie_title: row['Name'] || row['Title'],
+            title: row['Name'] || row['Title'],
             director: row['Director'] || '',
             year: parseInt(row['Year']) || new Date().getFullYear(),
             rating: parseFloat(row['Rating']) || 0,
@@ -73,7 +73,7 @@ export function CSVImporter() {
           }));
 
         const { error } = await supabase
-          .from('logged_movies')
+          .from('movies')
           .insert(movies);
 
         if (error) throw error;

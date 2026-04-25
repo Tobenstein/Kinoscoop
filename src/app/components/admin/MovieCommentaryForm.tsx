@@ -3,80 +3,89 @@ import { Save, X } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { toast } from 'sonner';
 
-interface LogMovieFormProps {
-  movie?: {
-    id: number;
-    title: string;
-    director: string;
-    year: number;
-    rating: number;
-    date_watched: string;
-    runtime?: number;
-    genre?: string;
-    poster_url?: string;
-    review?: string;
-  } | null;
+interface MovieCommentaryFormProps {
+  commentary?: any | null;
   onClose: () => void;
 }
 
-export function LogMovieForm({ movie, onClose }: LogMovieFormProps) {
+export function MovieCommentaryForm({ commentary, onClose }: MovieCommentaryFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     director: '',
     year: new Date().getFullYear(),
     rating: 4.0,
-    date_watched: new Date().toISOString().split('T')[0],
+    published_date: new Date().toISOString().split('T')[0],
     runtime: 120,
     genre: '',
     poster_url: '',
+    backdrop_url: '',
+    cast_members: '',
+    synopsis: '',
     review: '',
+    standout_moments: '',
+    rewatch: '',
+    tags: '',
     viewing_medium: '',
     streaming_service: '',
-    imdb_url: ''
+    imdb_url: '',
+    is_featured: false
   });
 
   useEffect(() => {
-    if (movie) {
+    if (commentary) {
       setFormData({
-        title: movie.title,
-        director: movie.director,
-        year: movie.year,
-        rating: movie.rating,
-        date_watched: movie.date_watched,
-        runtime: movie.runtime || 120,
-        genre: movie.genre || '',
-        poster_url: movie.poster_url || '',
-        review: movie.review || '',
-        viewing_medium: (movie as any).viewing_medium || '',
-        streaming_service: (movie as any).streaming_service || '',
-        imdb_url: (movie as any).imdb_url || ''
+        title: commentary.title || '',
+        director: commentary.director || '',
+        year: commentary.year || new Date().getFullYear(),
+        rating: commentary.rating || 4.0,
+        published_date: commentary.published_date || new Date().toISOString().split('T')[0],
+        runtime: commentary.runtime || 120,
+        genre: commentary.genre || '',
+        poster_url: commentary.poster_url || '',
+        backdrop_url: commentary.backdrop_url || '',
+        cast: commentary.cast || '',
+        synopsis: commentary.synopsis || '',
+        review: commentary.review || '',
+        standout_moments: commentary.standout_moments || '',
+        rewatch: commentary.rewatch || '',
+        tags: commentary.tags?.join(', ') || '',
+        viewing_medium: commentary.viewing_medium || '',
+        streaming_service: commentary.streaming_service || '',
+        imdb_url: commentary.imdb_url || '',
+        is_featured: commentary.is_featured || false
       });
     }
-  }, [movie]);
+  }, [commentary]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (movie) {
-        // Update existing
+      const tagsArray = formData.tags.split(',').map(t => t.trim()).filter(t => t);
+
+      const payload = {
+        type: 'movie',
+        ...formData,
+        tags: tagsArray
+      };
+
+      if (commentary) {
         const { error } = await supabase
-          .from('movies')
-          .update(formData)
-          .eq('id', movie.id);
+          .from('commentary')
+          .update(payload)
+          .eq('id', commentary.id);
 
         if (error) throw error;
-        toast.success('Movie updated successfully!');
+        toast.success('Movie commentary updated successfully!');
       } else {
-        // Create new
         const { error } = await supabase
-          .from('movies')
-          .insert([formData]);
+          .from('commentary')
+          .insert([payload]);
 
         if (error) throw error;
-        toast.success('Movie logged successfully!');
+        toast.success('Movie commentary created successfully!');
       }
 
       onClose();
@@ -91,7 +100,7 @@ export function LogMovieForm({ movie, onClose }: LogMovieFormProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl text-foreground">
-          {movie ? 'Edit Movie' : 'Log New Movie'}
+          {commentary ? 'Edit Movie Commentary' : 'New Movie Commentary'}
         </h2>
         <button
           onClick={onClose}
@@ -162,12 +171,12 @@ export function LogMovieForm({ movie, onClose }: LogMovieFormProps) {
           </div>
 
           <div>
-            <label className="block text-foreground mb-2">Date Watched *</label>
+            <label className="block text-foreground mb-2">Published Date *</label>
             <input
               type="date"
               required
-              value={formData.date_watched}
-              onChange={(e) => setFormData({ ...formData, date_watched: e.target.value })}
+              value={formData.published_date}
+              onChange={(e) => setFormData({ ...formData, published_date: e.target.value })}
               className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
             />
           </div>
@@ -193,6 +202,17 @@ export function LogMovieForm({ movie, onClose }: LogMovieFormProps) {
               value={formData.poster_url}
               onChange={(e) => setFormData({ ...formData, poster_url: e.target.value })}
               placeholder="https://image.tmdb.org/t/p/w500/..."
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+
+          <div>
+            <label className="block text-foreground mb-2">Backdrop URL (TMDB)</label>
+            <input
+              type="url"
+              value={formData.backdrop_url}
+              onChange={(e) => setFormData({ ...formData, backdrop_url: e.target.value })}
+              placeholder="https://image.tmdb.org/t/p/original/..."
               className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
             />
           </div>
@@ -241,16 +261,91 @@ export function LogMovieForm({ movie, onClose }: LogMovieFormProps) {
           </div>
         </div>
 
-        {/* Review */}
+        {/* Cast */}
         <div>
-          <label className="block text-foreground mb-2">Review (optional)</label>
-          <textarea
-            value={formData.review}
-            onChange={(e) => setFormData({ ...formData, review: e.target.value })}
-            rows={6}
-            placeholder="Your thoughts on the movie..."
+          <label className="block text-foreground mb-2">Cast</label>
+          <input
+            type="text"
+            value={formData.cast}
+            onChange={(e) => setFormData({ ...formData, cast: e.target.value })}
+            placeholder="Actor 1, Actor 2, Actor 3, etc."
             className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
           />
+        </div>
+
+        {/* Synopsis */}
+        <div>
+          <label className="block text-foreground mb-2">Synopsis</label>
+          <textarea
+            value={formData.synopsis}
+            onChange={(e) => setFormData({ ...formData, synopsis: e.target.value })}
+            rows={3}
+            placeholder="Brief plot summary..."
+            className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+          />
+        </div>
+
+        {/* Review */}
+        <div>
+          <label className="block text-foreground mb-2">Review *</label>
+          <textarea
+            required
+            value={formData.review}
+            onChange={(e) => setFormData({ ...formData, review: e.target.value })}
+            rows={12}
+            placeholder="Your full review..."
+            className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+          />
+        </div>
+
+        {/* Standout Moments */}
+        <div>
+          <label className="block text-foreground mb-2">Standout Moments</label>
+          <textarea
+            value={formData.standout_moments}
+            onChange={(e) => setFormData({ ...formData, standout_moments: e.target.value })}
+            rows={3}
+            placeholder="Memorable scenes or moments..."
+            className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+          />
+        </div>
+
+        {/* Rewatch Value */}
+        <div>
+          <label className="block text-foreground mb-2">Would I Rewatch?</label>
+          <textarea
+            value={formData.rewatch}
+            onChange={(e) => setFormData({ ...formData, rewatch: e.target.value })}
+            rows={2}
+            placeholder="Your thoughts on rewatchability..."
+            className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+          />
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="block text-foreground mb-2">Tags (comma-separated)</label>
+          <input
+            type="text"
+            value={formData.tags}
+            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+            placeholder="Thriller, Mind-Bending, Action, etc."
+            className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+          />
+        </div>
+
+        {/* Featured */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="is_featured"
+            checked={formData.is_featured}
+            onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
+            className="w-4 h-4"
+          />
+          <label htmlFor="is_featured" className="text-foreground">
+            Feature this commentary on the main page
+          </label>
         </div>
 
         {/* Actions */}
@@ -268,7 +363,7 @@ export function LogMovieForm({ movie, onClose }: LogMovieFormProps) {
             className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            {loading ? 'Saving...' : movie ? 'Update Movie' : 'Log Movie'}
+            {loading ? 'Saving...' : commentary ? 'Update Commentary' : 'Create Commentary'}
           </button>
         </div>
       </form>

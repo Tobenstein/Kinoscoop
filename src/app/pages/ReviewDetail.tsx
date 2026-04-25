@@ -1,4 +1,4 @@
-import { ArrowLeft, Calendar, Clock, Star, Film, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Star, Film, User, Monitor, ExternalLink } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { StarRating } from '../components/StarRating';
@@ -21,6 +21,8 @@ export function ReviewDetail() {
       runtime: 152,
       genre: "Action, Crime, Drama",
       cast: "Christian Bale, Heath Ledger, Aaron Eckhart, Michael Caine",
+      viewingMedium: "Theatre",
+      imdbUrl: "https://www.imdb.com/title/tt0468569/",
       synopsis: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
       review: `Christopher Nolan's "The Dark Knight" isn't just a superhero film—it's a crime epic that transcends its genre to become something far greater. This is a film that asks serious questions about justice, morality, and the nature of heroism in a world where the line between good and evil isn't always clear.
 
@@ -176,6 +178,30 @@ The film doesn't glamorise the mob life; instead, it shows both the allure and t
                 <Film className="w-4 h-4 text-muted-foreground" />
                 <span className="text-foreground">{movie.genre}</span>
               </div>
+
+              {movie.viewingMedium && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Monitor className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-foreground">
+                    {movie.viewingMedium}
+                    {movie.streamingService && ` (${movie.streamingService})`}
+                  </span>
+                </div>
+              )}
+
+              {movie.imdbUrl && (
+                <div className="flex items-center gap-2 text-sm">
+                  <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                  <a
+                    href={movie.imdbUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    View on IMDb
+                  </a>
+                </div>
+              )}
             </div>
 
             {/* Tags */}

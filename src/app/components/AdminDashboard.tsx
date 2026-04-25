@@ -3,7 +3,7 @@ import { Film, Home, BarChart3, FileText, Calendar, Upload } from 'lucide-react'
 import { HomePageManager } from './admin/HomePageManager';
 import { LogManager } from './admin/LogManager';
 import { StatsManager } from './admin/StatsManager';
-import { ReviewsManager } from './admin/ReviewsManager';
+import { CommentaryManager } from './admin/CommentaryManager';
 import { AnalyticsDataManager } from './admin/AnalyticsDataManager';
 import { CSVImporter } from './admin/CSVImporter';
 
@@ -16,7 +16,7 @@ export function AdminDashboard() {
     { id: 'home' as AdminTab, label: 'Home Page', icon: Home },
     { id: 'log' as AdminTab, label: 'Log Movies', icon: Film },
     { id: 'stats' as AdminTab, label: 'Stats', icon: BarChart3 },
-    { id: 'reviews' as AdminTab, label: 'Reviews', icon: FileText },
+    { id: 'reviews' as AdminTab, label: 'Commentary', icon: FileText },
     { id: 'analytics' as AdminTab, label: 'Analytics', icon: Calendar },
     { id: 'import' as AdminTab, label: 'Import CSV', icon: Upload },
   ];
@@ -30,7 +30,7 @@ export function AdminDashboard() {
       case 'stats':
         return <StatsManager />;
       case 'reviews':
-        return <ReviewsManager />;
+        return <CommentaryManager />;
       case 'analytics':
         return <AnalyticsDataManager />;
       case 'import':

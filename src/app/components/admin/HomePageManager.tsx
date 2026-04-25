@@ -8,6 +8,7 @@ interface Movie {
   director: string;
   poster_url: string;
   year?: number;
+  country?: string;
 }
 
 export function HomePageManager() {
@@ -26,15 +27,20 @@ export function HomePageManager() {
     runtime: 120
   });
 
-  const [movieOfMonth, setMovieOfMonth] = useState<Movie & { synopsis: string }>({
+  const [movieOfMonth, setMovieOfMonth] = useState<Movie & { synopsis: string; review_id?: number }>({
     title: '',
     director: '',
     poster_url: '',
     synopsis: '',
-    year: new Date().getFullYear()
+    year: new Date().getFullYear(),
+    review_id: undefined
   });
 
+  const [featuredPeriod, setFeaturedPeriod] = useState<'month' | 'week'>('month');
+
   const [watchlist, setWatchlist] = useState<Movie[]>([]);
+  const [recentFavourites, setRecentFavourites] = useState<Movie[]>([]);
+  const [tenForAllTime, setTenForAllTime] = useState<Movie[]>([]);
 
   const [socialHandles, setSocialHandles] = useState({
     instagram: '',
@@ -43,7 +49,9 @@ export function HomePageManager() {
     tiktok: '',
     bluesky: '',
     letterboxd: '',
-    imdb: ''
+    spotify: '',
+    imdb: '',
+    portfolio_url: ''
   });
 
   useEffect(() => {
@@ -74,8 +82,20 @@ export function HomePageManager() {
           setMovieOfMonth(data.movie_of_month);
         }
 
+        if (data.featured_period) {
+          setFeaturedPeriod(data.featured_period);
+        }
+
         if (data.watchlist) {
           setWatchlist(data.watchlist);
+        }
+
+        if (data.recent_favourites) {
+          setRecentFavourites(data.recent_favourites);
+        }
+
+        if (data.ten_for_all_time) {
+          setTenForAllTime(data.ten_for_all_time);
         }
 
         setSocialHandles({
@@ -85,7 +105,9 @@ export function HomePageManager() {
           tiktok: data.tiktok_handle || '',
           bluesky: data.bluesky_handle || '',
           letterboxd: data.letterboxd_handle || '',
-          imdb: data.imdb_handle || ''
+          spotify: data.spotify_handle || '',
+          imdb: data.imdb_handle || '',
+          portfolio_url: data.portfolio_url || ''
         });
       }
     };
@@ -112,14 +134,19 @@ export function HomePageManager() {
           hero_closing_paragraph: closingText,
           currently_watching: currentlyWatching,
           movie_of_month: movieOfMonth,
+          featured_period: featuredPeriod,
           watchlist: watchlist,
+          recent_favourites: recentFavourites,
+          ten_for_all_time: tenForAllTime,
           instagram_handle: socialHandles.instagram,
           facebook_handle: socialHandles.facebook,
           youtube_handle: socialHandles.youtube,
           tiktok_handle: socialHandles.tiktok,
           bluesky_handle: socialHandles.bluesky,
           letterboxd_handle: socialHandles.letterboxd,
+          spotify_handle: socialHandles.spotify,
           imdb_handle: socialHandles.imdb,
+          portfolio_url: socialHandles.portfolio_url,
           updated_at: new Date().toISOString()
         });
 
@@ -134,7 +161,7 @@ export function HomePageManager() {
   };
 
   const addToWatchlist = () => {
-    setWatchlist([...watchlist, { title: '', director: '', poster_url: '', year: new Date().getFullYear() }]);
+    setWatchlist([...watchlist, { title: '', director: '', poster_url: '', year: new Date().getFullYear(), country: '' }]);
   };
 
   const removeFromWatchlist = (index: number) => {
@@ -145,6 +172,38 @@ export function HomePageManager() {
     const updated = [...watchlist];
     updated[index] = { ...updated[index], [field]: value };
     setWatchlist(updated);
+  };
+
+  const addToRecentFavourites = () => {
+    if (recentFavourites.length < 3) {
+      setRecentFavourites([...recentFavourites, { title: '', director: '', poster_url: '', year: new Date().getFullYear() }]);
+    }
+  };
+
+  const removeFromRecentFavourites = (index: number) => {
+    setRecentFavourites(recentFavourites.filter((_, i) => i !== index));
+  };
+
+  const updateRecentFavouritesItem = (index: number, field: keyof Movie, value: string | number) => {
+    const updated = [...recentFavourites];
+    updated[index] = { ...updated[index], [field]: value };
+    setRecentFavourites(updated);
+  };
+
+  const addToTenForAllTime = () => {
+    if (tenForAllTime.length < 10) {
+      setTenForAllTime([...tenForAllTime, { title: '', director: '', poster_url: '', year: new Date().getFullYear() }]);
+    }
+  };
+
+  const removeFromTenForAllTime = (index: number) => {
+    setTenForAllTime(tenForAllTime.filter((_, i) => i !== index));
+  };
+
+  const updateTenForAllTimeItem = (index: number, field: keyof Movie, value: string | number) => {
+    const updated = [...tenForAllTime];
+    updated[index] = { ...updated[index], [field]: value };
+    setTenForAllTime(updated);
   };
 
   if (!isSupabaseConfigured()) {
@@ -278,7 +337,20 @@ export function HomePageManager() {
 
       {/* Movie of the Month */}
       <div className="bg-card rounded-lg border border-border p-6">
-        <h2 className="text-xl text-foreground mb-4">Movie of the Month</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl text-foreground">Featured Movie</h2>
+          <div className="flex items-center gap-2">
+            <label className="text-foreground text-sm">Display as:</label>
+            <select
+              value={featuredPeriod}
+              onChange={(e) => setFeaturedPeriod(e.target.value as 'month' | 'week')}
+              className="px-3 py-1 bg-input-background border border-border rounded-lg text-foreground text-sm"
+            >
+              <option value="month">Movie of the Month</option>
+              <option value="week">Movie of the Week</option>
+            </select>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -322,6 +394,17 @@ export function HomePageManager() {
             />
           </div>
 
+          <div>
+            <label className="block text-foreground mb-2">Review ID (optional)</label>
+            <input
+              type="number"
+              value={movieOfMonth.review_id || ''}
+              onChange={(e) => setMovieOfMonth({ ...movieOfMonth, review_id: parseInt(e.target.value) || undefined })}
+              placeholder="Enter review ID to link to review page"
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+
           <div className="md:col-span-2">
             <label className="block text-foreground mb-2">Synopsis</label>
             <textarea
@@ -331,6 +414,126 @@ export function HomePageManager() {
               className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
             />
           </div>
+        </div>
+      </div>
+
+      {/* Recent Favourites */}
+      <div className="bg-card rounded-lg border border-border p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl text-foreground">Recent Favourites (Max 3)</h2>
+          <button
+            onClick={addToRecentFavourites}
+            disabled={recentFavourites.length >= 3}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+            Add Movie
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {recentFavourites.map((movie, index) => (
+            <div key={index} className="bg-muted rounded-lg p-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <input
+                    type="text"
+                    value={movie.title}
+                    onChange={(e) => updateRecentFavouritesItem(index, 'title', e.target.value)}
+                    placeholder="Movie Title"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                  <input
+                    type="text"
+                    value={movie.director || ''}
+                    onChange={(e) => updateRecentFavouritesItem(index, 'director', e.target.value)}
+                    placeholder="Director"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                  <input
+                    type="text"
+                    value={movie.poster_url}
+                    onChange={(e) => updateRecentFavouritesItem(index, 'poster_url', e.target.value)}
+                    placeholder="Poster URL"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                  <input
+                    type="number"
+                    value={movie.year || ''}
+                    onChange={(e) => updateRecentFavouritesItem(index, 'year', parseInt(e.target.value) || new Date().getFullYear())}
+                    placeholder="Year"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                </div>
+                <button
+                  onClick={() => removeFromRecentFavourites(index)}
+                  className="p-2 text-destructive hover:bg-destructive/10 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 10 for All Time */}
+      <div className="bg-card rounded-lg border border-border p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl text-foreground">10 for All Time (Max 10)</h2>
+          <button
+            onClick={addToTenForAllTime}
+            disabled={tenForAllTime.length >= 10}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Plus className="w-4 h-4" />
+            Add Movie
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {tenForAllTime.map((movie, index) => (
+            <div key={index} className="bg-muted rounded-lg p-4">
+              <div className="flex items-start gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <input
+                    type="text"
+                    value={movie.title}
+                    onChange={(e) => updateTenForAllTimeItem(index, 'title', e.target.value)}
+                    placeholder="Movie Title"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                  <input
+                    type="text"
+                    value={movie.director || ''}
+                    onChange={(e) => updateTenForAllTimeItem(index, 'director', e.target.value)}
+                    placeholder="Director"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                  <input
+                    type="text"
+                    value={movie.poster_url}
+                    onChange={(e) => updateTenForAllTimeItem(index, 'poster_url', e.target.value)}
+                    placeholder="Poster URL"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                  <input
+                    type="number"
+                    value={movie.year || ''}
+                    onChange={(e) => updateTenForAllTimeItem(index, 'year', parseInt(e.target.value) || new Date().getFullYear())}
+                    placeholder="Year"
+                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                  />
+                </div>
+                <button
+                  onClick={() => removeFromTenForAllTime(index)}
+                  className="p-2 text-destructive hover:bg-destructive/10 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -351,28 +554,46 @@ export function HomePageManager() {
           {watchlist.map((movie, index) => (
             <div key={index} className="bg-muted rounded-lg p-4">
               <div className="flex items-start gap-4">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <input
-                    type="text"
-                    value={movie.title}
-                    onChange={(e) => updateWatchlistItem(index, 'title', e.target.value)}
-                    placeholder="Movie Title"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={movie.director}
-                    onChange={(e) => updateWatchlistItem(index, 'director', e.target.value)}
-                    placeholder="Director"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={movie.poster_url}
-                    onChange={(e) => updateWatchlistItem(index, 'poster_url', e.target.value)}
-                    placeholder="Poster URL"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
+                <div className="flex-1 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <input
+                      type="text"
+                      value={movie.title}
+                      onChange={(e) => updateWatchlistItem(index, 'title', e.target.value)}
+                      placeholder="Movie Title"
+                      className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                    />
+                    <input
+                      type="text"
+                      value={movie.director}
+                      onChange={(e) => updateWatchlistItem(index, 'director', e.target.value)}
+                      placeholder="Director"
+                      className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                    />
+                    <input
+                      type="text"
+                      value={movie.poster_url}
+                      onChange={(e) => updateWatchlistItem(index, 'poster_url', e.target.value)}
+                      placeholder="Poster URL"
+                      className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input
+                      type="number"
+                      value={movie.year || ''}
+                      onChange={(e) => updateWatchlistItem(index, 'year', parseInt(e.target.value) || new Date().getFullYear())}
+                      placeholder="Year"
+                      className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                    />
+                    <input
+                      type="text"
+                      value={movie.country || ''}
+                      onChange={(e) => updateWatchlistItem(index, 'country', e.target.value)}
+                      placeholder="Country (e.g., USA, France, UK/USA)"
+                      className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                    />
+                  </div>
                 </div>
                 <button
                   onClick={() => removeFromWatchlist(index)}
@@ -458,12 +679,34 @@ export function HomePageManager() {
           </div>
 
           <div>
+            <label className="block text-foreground mb-2">Spotify</label>
+            <input
+              type="text"
+              value={socialHandles.spotify}
+              onChange={(e) => setSocialHandles({ ...socialHandles, spotify: e.target.value })}
+              placeholder="username"
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+
+          <div>
             <label className="block text-foreground mb-2">IMDb</label>
             <input
               type="text"
               value={socialHandles.imdb}
               onChange={(e) => setSocialHandles({ ...socialHandles, imdb: e.target.value })}
               placeholder="username"
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-foreground mb-2">Portfolio URL</label>
+            <input
+              type="url"
+              value={socialHandles.portfolio_url}
+              onChange={(e) => setSocialHandles({ ...socialHandles, portfolio_url: e.target.value })}
+              placeholder="https://example.com"
               className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
             />
           </div>

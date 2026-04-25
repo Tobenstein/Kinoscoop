@@ -23,7 +23,7 @@ export function StatsManager() {
 
     try {
       const { data: movies, error } = await supabase
-        .from('logged_movies')
+        .from('movies')
         .select('*');
 
       if (error) throw error;
@@ -70,7 +70,7 @@ export function StatsManager() {
         moviesThisYear: thisYear.length,
         uniqueDirectors: directors.size,
         mostWatchedGenre,
-        topRatedMovie: topRated ? topRated.movie_title : '-'
+        topRatedMovie: topRated ? topRated.title : '-'
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

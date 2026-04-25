@@ -6,7 +6,7 @@ import { LogMovieForm } from './LogMovieForm';
 
 interface LoggedMovie {
   id: number;
-  movie_title: string;
+  title: string;
   director: string;
   year: number;
   rating: number;
@@ -35,7 +35,7 @@ export function LogManager() {
 
     try {
       const { data, error } = await supabase
-        .from('logged_movies')
+        .from('movies')
         .select('*')
         .order('date_watched', { ascending: false });
 
@@ -54,7 +54,7 @@ export function LogManager() {
 
     try {
       const { error } = await supabase
-        .from('logged_movies')
+        .from('movies')
         .delete()
         .eq('id', id);
 
@@ -150,7 +150,7 @@ export function LogManager() {
               <tbody>
                 {movies.map((movie) => (
                   <tr key={movie.id} className="border-b border-border hover:bg-muted/50">
-                    <td className="px-6 py-4 text-foreground font-medium">{movie.movie_title}</td>
+                    <td className="px-6 py-4 text-foreground font-medium">{movie.title}</td>
                     <td className="px-6 py-4 text-muted-foreground">{movie.director}</td>
                     <td className="px-6 py-4 text-muted-foreground">{movie.year}</td>
                     <td className="px-6 py-4 text-foreground">{movie.rating.toFixed(1)} ⭐</td>

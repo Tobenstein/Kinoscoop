@@ -1,8 +1,9 @@
-import { Film, Star, Clock, Instagram, Facebook, Youtube, Cloud } from 'lucide-react';
+import { Film, Star, Clock, Instagram, Facebook, Youtube, Cloud, Music, User } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { TikTokIcon } from '../components/TikTokIcon';
 import { StarRating } from '../components/StarRating';
 import { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 interface Movie {
@@ -17,22 +18,27 @@ interface Movie {
   synopsis?: string;
   year?: number;
   runtime?: number;
+  country?: string;
+  review_id?: number;
 }
 
 export function Home() {
   const [loading, setLoading] = useState(true);
+  const [featuredPeriod, setFeaturedPeriod] = useState<'month' | 'week'>('month');
   const [heroContent, setHeroContent] = useState({
     header: 'Welcome to My Cinema Journey',
-    subheader: 'Exploring worlds one film at a time',
-    intro_paragraph: "Hi! I'm a passionate cinephile based in Dublin, Ireland. What started as a personal hobby has grown into a thriving online community of fellow movie lovers.",
-    closing_paragraph: "From indie dramas to blockbuster epics, I watch across all genres and love discovering hidden cinematic gems. Join me as I share my latest watches, reviews, and movie adventures!",
-    instagram_handle: 'moviereviews',
-    facebook_handle: 'moviereviews',
-    youtube_handle: '@moviereviews',
-    tiktok_handle: '@moviereviews',
-    bluesky_handle: 'moviereviews.bsky.social',
-    letterboxd_handle: 'moviereviews',
-    imdb_handle: 'moviereviews',
+    subheader: 'Where the silver screen is the retina to the mind\'s eye...',
+    intro_paragraph: "Hi! I'm Rob, a writer, designer, and cinephile currently living in Prague. I have been fascinated with film since I was knee-high to a grasshopper, and recently decided it was time to share my passion with someone other than my wife.",
+    closing_paragraph: "This website is fresh out of the oven, so it might be a little rough around the edges until I can get things smoothed out. In the meantime, have a look at some of my favourite moves, read some commentary, or check out my socials to catch the latest (kino)scoop!",
+    instagram_handle: 'kinoscoop',
+    facebook_handle: '',
+    youtube_handle: '',
+    tiktok_handle: 'hirerob',
+    bluesky_handle: '',
+    letterboxd_handle: 'kinoscoop',
+    spotify_handle: '',
+    imdb_handle: '',
+    portfolio_url: 'https://robperry.eu',
   });
   const [currentlyWatching, setCurrentlyWatching] = useState<Movie>({
     id: 1,
@@ -59,24 +65,28 @@ export function Home() {
       title: "The Godfather",
       director: "Francis Ford Coppola",
       posterUrl: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-      year: 1972
+      year: 1972,
+      country: "USA"
     },
     {
       id: 4,
       title: "Pulp Fiction",
       director: "Quentin Tarantino",
       posterUrl: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
-      year: 1994
+      year: 1994,
+      country: "USA"
     },
     {
       id: 5,
       title: "Inception",
       director: "Christopher Nolan",
       posterUrl: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
-      year: 2010
+      year: 2010,
+      country: "USA/UK"
     }
   ]);
 
+  const [last30Days, setLast30Days] = useState<Movie[]>([]);
   const [recentlyWatched, setRecentlyWatched] = useState<Movie[]>([
     {
       id: 6,
@@ -225,7 +235,9 @@ export function Home() {
               tiktok_handle: data.tiktok_handle,
               bluesky_handle: data.bluesky_handle,
               letterboxd_handle: data.letterboxd_handle || 'moviereviews',
+              spotify_handle: data.spotify_handle || '',
               imdb_handle: data.imdb_handle || 'moviereviews',
+              portfolio_url: data.portfolio_url || '',
             });
           }
 
@@ -236,7 +248,8 @@ export function Home() {
               director: data.currently_watching.director,
               posterUrl: data.currently_watching.poster_url,
               progress: data.currently_watching.progress,
-              year: data.currently_watching.year
+              year: data.currently_watching.year,
+              runtime: data.currently_watching.runtime
             });
           }
 
@@ -247,8 +260,13 @@ export function Home() {
               director: data.movie_of_month.director,
               posterUrl: data.movie_of_month.poster_url,
               synopsis: data.movie_of_month.synopsis,
-              year: data.movie_of_month.year
+              year: data.movie_of_month.year,
+              review_id: data.movie_of_month.review_id
             });
+          }
+
+          if (data.featured_period) {
+            setFeaturedPeriod(data.featured_period);
           }
 
           if (data.watchlist && data.watchlist.length > 0) {
@@ -257,9 +275,54 @@ export function Home() {
               title: movie.title,
               director: movie.director,
               posterUrl: movie.poster_url,
-              year: movie.year
+              year: movie.year,
+              country: movie.country
             })));
           }
+        }
+
+        // Fetch 10 most recently watched movies
+        const { data: recentMovies, error: recentError } = await supabase
+          .from('movies')
+          .select('*')
+          .not('date_watched', 'is', null)
+          .order('date_watched', { ascending: false })
+          .limit(10);
+
+        if (!recentError && recentMovies) {
+          setRecentlyWatched(recentMovies.map((movie: any) => ({
+            id: movie.id,
+            title: movie.title,
+            director: movie.director,
+            posterUrl: movie.poster_url,
+            rating: movie.rating,
+            finishDate: new Date(movie.date_watched).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            year: movie.year
+          })));
+        }
+
+        // Fetch movies from the last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+        const { data: last30DaysMovies, error: last30Error } = await supabase
+          .from('movies')
+          .select('*')
+          .not('date_watched', 'is', null)
+          .gte('date_watched', thirtyDaysAgoStr)
+          .order('date_watched', { ascending: false });
+
+        if (!last30Error && last30DaysMovies) {
+          setLast30Days(last30DaysMovies.map((movie: any) => ({
+            id: movie.id,
+            title: movie.title,
+            director: movie.director,
+            posterUrl: movie.poster_url,
+            rating: movie.rating,
+            finishDate: new Date(movie.date_watched).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            year: movie.year
+          })));
         }
       } catch (error) {
         // Supabase not configured, use default data
@@ -271,7 +334,7 @@ export function Home() {
     const fetchRecentlyWatched = async () => {
       try {
         const { data: loggedMovies, error } = await supabase
-          .from('logged_movies')
+          .from('movies')
           .select('*')
           .order('date_watched', { ascending: false })
           .limit(15);
@@ -286,7 +349,7 @@ export function Home() {
 
           const moviesWithPosters = loggedMovies.map((movie, index) => ({
             id: 100 + index,
-            title: movie.movie_title,
+            title: movie.title,
             director: movie.director,
             posterUrl: movie.poster_url || 'https://image.tmdb.org/t/p/w500/placeholder.jpg',
             rating: movie.rating,
@@ -338,72 +401,107 @@ export function Home() {
             </p>
 
             {/* Social Media Icons */}
-            <div className="flex gap-3">
-              <a
-                href={`https://instagram.com/${heroContent.instagram_handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href={`https://facebook.com/${heroContent.facebook_handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Facebook"
-              >
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a
-                href={`https://youtube.com/${heroContent.youtube_handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="YouTube"
-              >
-                <Youtube className="w-5 h-5" />
-              </a>
-              <a
-                href={`https://tiktok.com/${heroContent.tiktok_handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="TikTok"
-              >
-                <TikTokIcon className="w-5 h-5" />
-              </a>
-              <a
-                href={`https://bsky.app/profile/${heroContent.bluesky_handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="BlueSky"
-              >
-                <Cloud className="w-5 h-5" />
-              </a>
-              <a
-                href={`https://letterboxd.com/${heroContent.letterboxd_handle}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
-                aria-label="Letterboxd"
-              >
-                <Film className="w-5 h-5" />
-              </a>
+            <div className="flex gap-3 flex-wrap">
+              {heroContent.instagram_handle && (
+                <a
+                  href={`https://instagram.com/${heroContent.instagram_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.letterboxd_handle && (
+                <a
+                  href={`https://letterboxd.com/${heroContent.letterboxd_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="Letterboxd"
+                >
+                  <Film className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.tiktok_handle && (
+                <a
+                  href={`https://tiktok.com/@${heroContent.tiktok_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="TikTok"
+                >
+                  <TikTokIcon className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.spotify_handle && (
+                <a
+                  href={`https://open.spotify.com/user/${heroContent.spotify_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="Spotify"
+                >
+                  <Music className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.facebook_handle && (
+                <a
+                  href={`https://facebook.com/${heroContent.facebook_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="Facebook"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.youtube_handle && (
+                <a
+                  href={`https://youtube.com/${heroContent.youtube_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="YouTube"
+                >
+                  <Youtube className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.bluesky_handle && (
+                <a
+                  href={`https://bsky.app/profile/${heroContent.bluesky_handle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-accent text-accent-foreground p-2 rounded-lg hover:bg-secondary transition-colors"
+                  aria-label="BlueSky"
+                >
+                  <Cloud className="w-5 h-5" />
+                </a>
+              )}
+              {heroContent.portfolio_url && (
+                <a
+                  href={heroContent.portfolio_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-primary text-primary-foreground px-3 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
+                  aria-label="Portfolio"
+                >
+                  <User className="w-5 h-5" />
+                  <span className="text-sm">Portfolio</span>
+                </a>
+              )}
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Currently Watching */}
+        {/* Now Playing */}
         <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-4 md:p-6">
           <div className="flex items-center gap-2 mb-6">
             <Film className="w-5 h-5 text-primary" />
-            <h2 className="text-foreground">Currently Watching</h2>
+            <h2 className="text-foreground">Now Playing</h2>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
@@ -419,9 +517,7 @@ export function Home() {
               <h3 className="text-foreground mb-1">{currentlyWatching.title}</h3>
               <p className="text-muted-foreground mb-4">directed by {currentlyWatching.director}</p>
 
-              <div className="flex-1" />
-
-              <div className="space-y-3">
+              <div className="space-y-3 mb-4">
                 <div>
                   <div className="flex justify-between text-muted-foreground mb-2">
                     <span>Watch Progress</span>
@@ -440,56 +536,153 @@ export function Home() {
                   <span>{currentlyWatching.runtime} minutes • {currentlyWatching.year}</span>
                 </div>
               </div>
+
+              {/* Recently Watched nested inside */}
+              {recentlyWatched.length > 0 && (
+                <div className="border-t border-border pt-4">
+                  <h3 className="text-sm text-muted-foreground mb-3">Recently Watched</h3>
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <div className="flex gap-3" style={{ width: 'max-content' }}>
+                      {recentlyWatched.map((movie) => (
+                        <div
+                          key={movie.id}
+                          className="group cursor-pointer flex-shrink-0"
+                          style={{ width: '100px' }}
+                        >
+                          <div className="relative overflow-hidden rounded-md shadow-sm mb-2 transition-transform group-hover:scale-105">
+                            <ImageWithFallback
+                              src={movie.posterUrl}
+                              alt={movie.title}
+                              className="w-full h-36 object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                          </div>
+                          <h4 className="text-xs text-foreground mb-1 line-clamp-2">{movie.title}</h4>
+                          <div className="mb-1">
+                            <StarRating rating={movie.rating || 0} size={12} />
+                          </div>
+                          <p className="text-muted-foreground italic text-xs">
+                            {movie.finishDate}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Movie of the Month */}
+        {/* Movie of the Month/Week */}
         <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
           <div className="flex items-center gap-2 mb-6">
             <Star className="w-5 h-5 text-primary" />
-            <h2 className="text-foreground">Movie of the Month</h2>
+            <h2 className="text-foreground">
+              {featuredPeriod === 'week' ? 'Movie of the Week' : 'Movie of the Month'}
+            </h2>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-center">
-              <ImageWithFallback
-                src={movieOfTheMonth.posterUrl}
-                alt={movieOfTheMonth.title}
-                className="w-48 h-72 object-contain rounded-lg shadow-md"
-              />
-            </div>
+          {movieOfTheMonth.review_id ? (
+            <Link to={`/review/${movieOfTheMonth.review_id}`} className="block space-y-4 hover:opacity-90 transition-opacity cursor-pointer">
+              <div className="flex justify-center">
+                <ImageWithFallback
+                  src={movieOfTheMonth.posterUrl}
+                  alt={movieOfTheMonth.title}
+                  className="w-48 h-72 object-contain rounded-lg shadow-md"
+                />
+              </div>
 
-            <div>
-              <h3 className="text-foreground mb-1">{movieOfTheMonth.title}</h3>
-              <p className="text-muted-foreground mb-3">directed by {movieOfTheMonth.director}</p>
-              <p className="text-foreground">
-                {movieOfTheMonth.synopsis || "An epic biographical thriller that chronicles the creation of the atomic bomb. A masterful exploration of science, ethics, and history."}
-              </p>
+              <div>
+                <h3 className="text-foreground mb-1">{movieOfTheMonth.title}</h3>
+                <p className="text-muted-foreground mb-3">directed by {movieOfTheMonth.director}</p>
+                <p className="text-foreground">
+                  {movieOfTheMonth.synopsis || "An epic biographical thriller that chronicles the creation of the atomic bomb. A masterful exploration of science, ethics, and history."}
+                </p>
+              </div>
+            </Link>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <ImageWithFallback
+                  src={movieOfTheMonth.posterUrl}
+                  alt={movieOfTheMonth.title}
+                  className="w-48 h-72 object-contain rounded-lg shadow-md"
+                />
+              </div>
+
+              <div>
+                <h3 className="text-foreground mb-1">{movieOfTheMonth.title}</h3>
+                <p className="text-muted-foreground mb-3">directed by {movieOfTheMonth.director}</p>
+                <p className="text-foreground">
+                  {movieOfTheMonth.synopsis || "An epic biographical thriller that chronicles the creation of the atomic bomb. A masterful exploration of science, ethics, and history."}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Recently Watched */}
+      {/* The Last 30 Days */}
       <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-8">
-        <h2 className="text-foreground mb-6">Recently Watched</h2>
+        <h2 className="text-foreground mb-6">The Last 30 Days</h2>
 
-        <div
-          ref={scrollContainerRef}
-          className="overflow-x-auto scrollbar-hide"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none'
-          }}
-        >
-          <style>{`
-            .scrollbar-hide::-webkit-scrollbar {
-              display: none;
-            }
-          `}</style>
+        {last30Days.length > 0 ? (
+          <div
+            ref={scrollContainerRef}
+            className="overflow-x-auto scrollbar-hide"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            <style>{`
+              .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+              }
+            `}</style>
+            <div className="flex gap-6" style={{ width: 'max-content' }}>
+              {last30Days.map((movie) => (
+                <div
+                  key={movie.id}
+                  className="group cursor-pointer flex-shrink-0"
+                  style={{ width: '200px' }}
+                >
+                  <div className="relative overflow-hidden rounded-lg shadow-md mb-3 transition-transform group-hover:scale-105">
+                    <ImageWithFallback
+                      src={movie.posterUrl}
+                      alt={movie.title}
+                      className="w-full h-72 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  </div>
+
+                  <h3 className="text-foreground mb-1 line-clamp-2">{movie.title}</h3>
+                  <p className="text-muted-foreground mb-2">{movie.director}</p>
+                  <div className="mb-1">
+                    <StarRating rating={movie.rating || 0} />
+                  </div>
+                  {movie.finishDate && (
+                    <p className="text-muted-foreground italic text-xs">
+                      Watched {movie.finishDate}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-center text-muted-foreground py-12">No movies watched in the last 30 days</p>
+        )}
+      </div>
+
+      {/* Watchlist */}
+      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
+        <h2 className="text-foreground mb-6">{watchlist.length} {watchlist.length === 1 ? 'Movie' : 'Movies'} in My Watchlist</h2>
+
+        <div className="overflow-x-auto scrollbar-hide">
           <div className="flex gap-6" style={{ width: 'max-content' }}>
-            {recentlyWatched.map((movie) => (
+            {watchlist.map((movie) => (
               <div
                 key={movie.id}
                 className="group cursor-pointer flex-shrink-0"
@@ -505,41 +698,16 @@ export function Home() {
                 </div>
 
                 <h3 className="text-foreground mb-1 line-clamp-2">{movie.title}</h3>
-                <p className="text-muted-foreground mb-2">{movie.director}</p>
-                <div className="mb-1">
-                  <StarRating rating={movie.rating || 0} />
-                </div>
-                {movie.finishDate && (
-                  <p className="text-muted-foreground italic text-xs">
-                    Watched {movie.finishDate}
-                  </p>
+                <p className="text-muted-foreground mb-1">{movie.director}</p>
+                {movie.year && (
+                  <p className="text-muted-foreground mb-1">{movie.year}</p>
+                )}
+                {movie.country && (
+                  <p className="text-muted-foreground italic text-xs">{movie.country}</p>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      {/* Watchlist */}
-      <div className="bg-card rounded-xl shadow-sm border border-border p-6">
-        <h2 className="text-foreground mb-6">{watchlist.length} {watchlist.length === 1 ? 'Movie' : 'Movies'} in My Watchlist</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {watchlist.map((movie) => (
-            <div key={movie.id} className="group cursor-pointer">
-              <div className="relative overflow-hidden rounded-lg shadow-md mb-3 transition-transform group-hover:scale-105 flex justify-center bg-muted">
-                <ImageWithFallback
-                  src={movie.posterUrl}
-                  alt={movie.title}
-                  className="w-48 h-72 object-contain"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-              </div>
-
-              <h3 className="text-foreground mb-1">{movie.title}</h3>
-              <p className="text-muted-foreground">directed by {movie.director}</p>
-            </div>
-          ))}
         </div>
       </div>
     </div>

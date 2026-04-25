@@ -18,7 +18,7 @@ export function ReviewsManager() {
 
     try {
       const { data, error } = await supabase
-        .from('logged_movies')
+        .from('movies')
         .select('*')
         .order('date_watched', { ascending: false });
 
@@ -34,7 +34,7 @@ export function ReviewsManager() {
   const updateReview = async (id: number, review: string) => {
     try {
       const { error } = await supabase
-        .from('logged_movies')
+        .from('movies')
         .update({ review })
         .eq('id', id);
 
@@ -57,7 +57,7 @@ export function ReviewsManager() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl text-foreground">Manage Reviews</h2>
+      <h2 className="text-2xl text-foreground">Manage Commentary</h2>
 
       {loading ? (
         <div className="text-center py-12">
@@ -67,7 +67,7 @@ export function ReviewsManager() {
         <div className="space-y-4">
           {movies.map((movie) => (
             <div key={movie.id} className="bg-card rounded-lg border border-border p-6">
-              <h3 className="text-foreground mb-2">{movie.movie_title}</h3>
+              <h3 className="text-foreground mb-2">{movie.title}</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 {movie.director} • {movie.year} • ⭐ {movie.rating}
               </p>

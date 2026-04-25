@@ -18,7 +18,7 @@ export function AnalyticsDataManager() {
 
     try {
       const { data, error } = await supabase
-        .from('logged_movies')
+        .from('movies')
         .select('date_watched');
 
       if (error) throw error;
