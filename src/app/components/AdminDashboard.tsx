@@ -1,19 +1,23 @@
 import { useState } from 'react';
-import { Film, Home, BarChart3, FileText, Calendar, Upload } from 'lucide-react';
+import { Film, Home, BarChart3, FileText, Calendar, Upload, User, Trophy } from 'lucide-react';
 import { HomePageManager } from './admin/HomePageManager';
+import { AboutMeManager } from './admin/AboutMeManager';
 import { LogManager } from './admin/LogManager';
 import { StatsManager } from './admin/StatsManager';
 import { CommentaryManager } from './admin/CommentaryManager';
 import { AnalyticsDataManager } from './admin/AnalyticsDataManager';
 import { CSVImporter } from './admin/CSVImporter';
+import { ChallengesManager } from './admin/ChallengesManager';
 
-type AdminTab = 'home' | 'log' | 'stats' | 'reviews' | 'analytics' | 'import';
+type AdminTab = 'home' | 'about' | 'log' | 'stats' | 'reviews' | 'analytics' | 'challenges' | 'import';
 
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<AdminTab>('home');
 
   const tabs = [
     { id: 'home' as AdminTab, label: 'Home Page', icon: Home },
+    { id: 'about' as AdminTab, label: 'About Me', icon: User },
+    { id: 'challenges' as AdminTab, label: 'Challenges', icon: Trophy },
     { id: 'log' as AdminTab, label: 'Log Movies', icon: Film },
     { id: 'stats' as AdminTab, label: 'Stats', icon: BarChart3 },
     { id: 'reviews' as AdminTab, label: 'Commentary', icon: FileText },
@@ -25,6 +29,10 @@ export function AdminDashboard() {
     switch (activeTab) {
       case 'home':
         return <HomePageManager />;
+      case 'about':
+        return <AboutMeManager />;
+      case 'challenges':
+        return <ChallengesManager />;
       case 'log':
         return <LogManager />;
       case 'stats':

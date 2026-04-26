@@ -29,7 +29,7 @@ export function Home() {
     header: 'Welcome to My Cinema Journey',
     subheader: 'Where the silver screen is the retina to the mind\'s eye...',
     intro_paragraph: "Hi! I'm Rob, a writer, designer, and cinephile currently living in Prague. I have been fascinated with film since I was knee-high to a grasshopper, and recently decided it was time to share my passion with someone other than my wife.",
-    closing_paragraph: "This website is fresh out of the oven, so it might be a little rough around the edges until I can get things smoothed out. In the meantime, have a look at some of my favourite moves, read some commentary, or check out my socials to catch the latest (kino)scoop!",
+    closing_paragraph: "This website is fresh out of the oven, so it might be a little rough around the edges until I can get things smoothed out. In the meantime, have a look at some of my favourite movies, read some commentary, or check out my socials to catch the latest (kino)scoop!",
     instagram_handle: 'kinoscoop',
     facebook_handle: '',
     youtube_handle: '',
@@ -539,27 +539,32 @@ export function Home() {
 
               {/* Recently Watched nested inside */}
               {recentlyWatched.length > 0 && (
-                <div className="border-t border-border pt-4">
+                <div className="border-t border-border pt-4 mt-auto">
                   <h3 className="text-sm text-muted-foreground mb-3">Recently Watched</h3>
-                  <div className="overflow-x-auto scrollbar-hide">
+                  <div className="overflow-x-auto scrollbar-hide -mx-2 px-2">
+                    <style>{`
+                      .scrollbar-hide::-webkit-scrollbar {
+                        display: none;
+                      }
+                    `}</style>
                     <div className="flex gap-3" style={{ width: 'max-content' }}>
-                      {recentlyWatched.map((movie) => (
+                      {recentlyWatched.slice(0, 10).map((movie) => (
                         <div
                           key={movie.id}
                           className="group cursor-pointer flex-shrink-0"
-                          style={{ width: '100px' }}
+                          style={{ width: '90px' }}
                         >
-                          <div className="relative overflow-hidden rounded-md shadow-sm mb-2 transition-transform group-hover:scale-105">
+                          <div className="relative overflow-hidden rounded-md shadow-sm mb-1.5 transition-transform group-hover:scale-105">
                             <ImageWithFallback
                               src={movie.posterUrl}
                               alt={movie.title}
-                              className="w-full h-36 object-cover"
+                              className="w-full h-32 object-cover"
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
                           </div>
-                          <h4 className="text-xs text-foreground mb-1 line-clamp-2">{movie.title}</h4>
-                          <div className="mb-1">
-                            <StarRating rating={movie.rating || 0} size={12} />
+                          <h4 className="text-xs text-foreground mb-0.5 line-clamp-1 leading-tight">{movie.title}</h4>
+                          <div className="mb-0.5">
+                            <StarRating rating={movie.rating || 0} size={10} />
                           </div>
                           <p className="text-muted-foreground italic text-xs">
                             {movie.finishDate}

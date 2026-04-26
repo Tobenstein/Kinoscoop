@@ -33,6 +33,7 @@ export function Analytics() {
   const [timeRange, setTimeRange] = useState('year');
   const [expandedDirector, setExpandedDirector] = useState<number | null>(null);
   const [showMoviesOverlay, setShowMoviesOverlay] = useState(false);
+  const [mediaType, setMediaType] = useState<'movies' | 'tv'>('movies');
 
   // Mock data for charts
   const moviesByMonth = [
@@ -50,7 +51,22 @@ export function Analytics() {
     { month: 'Dec', movies: 18 }
   ];
 
-  const genreDistribution = [
+  const showsByMonth = [
+    { month: 'Jan', movies: 4 },
+    { month: 'Feb', movies: 7 },
+    { month: 'Mar', movies: 6 },
+    { month: 'Apr', movies: 5 },
+    { month: 'May', movies: 8 },
+    { month: 'Jun', movies: 6 },
+    { month: 'Jul', movies: 9 },
+    { month: 'Aug', movies: 7 },
+    { month: 'Sep', movies: 5 },
+    { month: 'Oct', movies: 6 },
+    { month: 'Nov', movies: 7 },
+    { month: 'Dec', movies: 10 }
+  ];
+
+  const movieGenreDistribution = [
     {
       name: 'Drama',
       value: 28,
@@ -89,7 +105,42 @@ export function Analytics() {
     }
   ];
 
-  const countryDistribution = [
+  const tvGenreDistribution = [
+    {
+      name: 'Comedy',
+      value: 35,
+      color: '#d4af37',
+      movies: ["Bob's Burgers", 'The Office (US)', 'Little Britain', 'Peep Show', 'Toast of London', '+ 30 more']
+    },
+    {
+      name: 'Sitcom',
+      value: 18,
+      color: '#3949ab',
+      movies: ['The IT Crowd', 'Flight of the Conchords', 'Derry Girls', '+ 15 more']
+    },
+    {
+      name: 'Surreal Comedy',
+      value: 8,
+      color: '#5c6bc0',
+      movies: ['The Mighty Boosh', 'Toast of London', '+ 6 more']
+    },
+    {
+      name: 'Sports',
+      value: 4,
+      color: '#7986cb',
+      movies: ['AEW Dynamite', '+ 3 more']
+    },
+    {
+      name: 'Other',
+      value: 2,
+      color: '#9fa8da',
+      movies: ['Various genres', 'Documentary', '+ more']
+    }
+  ];
+
+  const genreDistribution = mediaType === 'movies' ? movieGenreDistribution : tvGenreDistribution;
+
+  const movieCountryDistribution = [
     {
       name: 'France',
       value: 32,
@@ -127,6 +178,29 @@ export function Analytics() {
       movies: ['Various countries', 'Germany', 'Italy', 'Spain', 'Brazil', '+ 25 more']
     }
   ];
+
+  const tvCountryDistribution = [
+    {
+      name: 'USA',
+      value: 38,
+      color: '#d4af37',
+      movies: ["Bob's Burgers", 'The Office (US)', 'Flight of the Conchords', 'AEW Dynamite', '+ 34 more']
+    },
+    {
+      name: 'UK',
+      value: 22,
+      color: '#3949ab',
+      movies: ['The Mighty Boosh', 'Little Britain', 'Peep Show', 'Toast of London', 'The IT Crowd', 'Derry Girls', '+ 16 more']
+    },
+    {
+      name: 'Other',
+      value: 7,
+      color: '#5c6bc0',
+      movies: ['Various countries', 'Australia', 'Canada', '+ 4 more']
+    }
+  ];
+
+  const countryDistribution = mediaType === 'movies' ? movieCountryDistribution : tvCountryDistribution;
 
   const ratingDistribution = [
     { rating: '5.0', count: 12 },
@@ -238,8 +312,9 @@ export function Analytics() {
     });
   };
 
-  const stats = {
-    totalMovies: 152,
+  const movieStats = {
+    totalMovies: 152, // Including rewatches
+    uniqueMovies: 148, // Unique titles
     totalRuntime: 18240, // in minutes
     averageRating: 4.2,
     moviesThisMonth: 12,
@@ -252,12 +327,48 @@ export function Analytics() {
     ],
     lowestRated: [
       { title: 'The Room', rating: 1.5, year: 2003 },
-      { title: 'Battlefield Earth', rating: 1.75, year: 2000 }
+      { title: 'Battlefield Earth', rating: 1.75, year: 2000 },
+      { title: 'Cats', rating: 2.0, year: 2019 }
+    ],
+    mostRewatched: [
+      { title: 'The Dark Knight', rewatches: 4, year: 2008 },
+      { title: 'Inception', rewatches: 3, year: 2010 },
+      { title: 'The Shawshank Redemption', rewatches: 3, year: 1994 }
     ],
     mostWatchedGenre: 'Drama',
     favouriteDecade: '1990s',
     uniqueDirectors: 87
   };
+
+  const tvStats = {
+    totalShows: 67, // Including rewatches
+    uniqueShows: 63, // Unique titles
+    totalRuntime: 8940, // in minutes
+    averageRating: 4.3,
+    showsThisMonth: 6,
+    longestShow: { title: 'The Office (US)', runtime: 22 },
+    shortestShow: { title: 'The IT Crowd', runtime: 25 },
+    highestRated: [
+      { title: 'Flight of the Conchords', rating: 5.0, year: 2007 },
+      { title: 'Derry Girls', rating: 5.0, year: 2018 },
+      { title: 'The Mighty Boosh', rating: 5.0, year: 2004 }
+    ],
+    lowestRated: [
+      { title: 'Generic Sitcom 1', rating: 2.0, year: 2020 },
+      { title: 'Bad Reality Show', rating: 2.25, year: 2019 },
+      { title: 'Cancelled After One', rating: 2.5, year: 2021 }
+    ],
+    mostRewatched: [
+      { title: "Bob's Burgers", rewatches: 5, year: 2011 },
+      { title: 'The Office (US)', rewatches: 4, year: 2005 },
+      { title: 'Peep Show', rewatches: 3, year: 2003 }
+    ],
+    mostWatchedGenre: 'Comedy',
+    favouriteDecade: '2000s',
+    uniqueCreators: 42
+  };
+
+  const stats = mediaType === 'movies' ? movieStats : tvStats;
 
   const formatRuntime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -275,12 +386,38 @@ export function Analytics() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
-          <BarChart3 className="w-8 h-8 text-primary" />
-          <h1 className="text-3xl text-foreground">The Archives</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <BarChart3 className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl text-foreground">The Archives</h1>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setMediaType('movies')}
+              className={`px-6 py-2 rounded-lg transition-colors ${
+                mediaType === 'movies'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card text-foreground border border-border hover:bg-accent'
+              }`}
+            >
+              Movies
+            </button>
+            <button
+              onClick={() => setMediaType('tv')}
+              className={`px-6 py-2 rounded-lg transition-colors ${
+                mediaType === 'tv'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-card text-foreground border border-border hover:bg-accent'
+              }`}
+            >
+              TV Shows
+            </button>
+          </div>
         </div>
         <p className="text-muted-foreground">
-          Insights and statistics about your movie-watching journey
+          {mediaType === 'movies'
+            ? 'Insights and statistics about your movie-watching journey'
+            : 'Insights and statistics about your TV show-watching journey'}
         </p>
       </div>
 
@@ -323,15 +460,21 @@ export function Analytics() {
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <div className="flex items-center gap-3 mb-2">
             <Film className="w-5 h-5 text-primary" />
-            <h3 className="text-muted-foreground">Total Movies</h3>
+            <h3 className="text-muted-foreground">
+              {mediaType === 'movies' ? 'Total Movies' : 'Total Shows'}
+            </h3>
           </div>
-          <p className="text-3xl text-foreground font-semibold">{stats.totalMovies}</p>
-          <p className="text-sm text-muted-foreground mt-1">+{stats.moviesThisMonth} this month</p>
+          <p className="text-3xl text-foreground font-semibold">
+            {mediaType === 'movies' ? stats.totalMovies : stats.totalShows}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {mediaType === 'movies' ? stats.uniqueMovies : stats.uniqueShows} unique • +{mediaType === 'movies' ? stats.moviesThisMonth : stats.showsThisMonth} this month
+          </p>
           <button
             onClick={() => setShowMoviesOverlay(true)}
             className="mt-3 w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm"
           >
-            See all movies
+            {mediaType === 'movies' ? 'See all movies' : 'See all shows'}
           </button>
         </div>
 
@@ -356,10 +499,16 @@ export function Analytics() {
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <div className="flex items-center gap-3 mb-2">
             <User className="w-5 h-5 text-primary" />
-            <h3 className="text-muted-foreground">Directors</h3>
+            <h3 className="text-muted-foreground">
+              {mediaType === 'movies' ? 'Directors' : 'Creators'}
+            </h3>
           </div>
-          <p className="text-3xl text-foreground font-semibold">{stats.uniqueDirectors}</p>
-          <p className="text-sm text-muted-foreground mt-1">unique directors</p>
+          <p className="text-3xl text-foreground font-semibold">
+            {mediaType === 'movies' ? stats.uniqueDirectors : stats.uniqueCreators}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            unique {mediaType === 'movies' ? 'directors' : 'creators'}
+          </p>
         </div>
       </div>
 
@@ -369,7 +518,7 @@ export function Analytics() {
         <div className="bg-card rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-lg text-foreground mb-4">Movies Watched by Month</h2>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={moviesByMonth}>
+            <BarChart data={mediaType === 'movies' ? moviesByMonth : showsByMonth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e2442" />
               <XAxis dataKey="month" stroke="#9fa8da" style={{ fontSize: '12px' }} />
               <YAxis stroke="#9fa8da" style={{ fontSize: '12px' }} />
@@ -594,6 +743,25 @@ export function Analytics() {
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Most Rewatched */}
+      <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6 mb-8">
+        <h2 className="text-xl text-foreground mb-4">Most Rewatched</h2>
+        <div className="space-y-3">
+          {stats.mostRewatched.map((movie, index) => (
+            <div key={index} className="flex items-center justify-between">
+              <div>
+                <p className="text-foreground font-semibold">{movie.title}</p>
+                <p className="text-sm text-muted-foreground">{movie.year}</p>
+              </div>
+              <div className="flex items-center gap-2 text-primary">
+                <Film className="w-4 h-4" />
+                <span className="font-semibold">{movie.rewatches} {movie.rewatches === 1 ? 'rewatch' : 'rewatches'}</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

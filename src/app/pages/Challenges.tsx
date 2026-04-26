@@ -1,5 +1,6 @@
 import { Trophy, Target, CheckCircle, Circle, Calendar, Film } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 interface Challenge {
   id: number;
@@ -13,7 +14,7 @@ interface Challenge {
 }
 
 export function Challenges() {
-  const [challenges] = useState<Challenge[]>([
+  const [challenges, setChallenges] = useState<Challenge[]>([
     {
       id: 1,
       title: "Century Club",
@@ -70,6 +71,28 @@ export function Challenges() {
       completed: false
     }
   ]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    const fetchChallenges = async () => {
+      const { data, error } = await supabase
+        .from('challenges')
+        .select('*')
+        .order('id');
+
+      if (error) {
+        console.error('Error fetching challenges:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setChallenges(data);
+      }
+    };
+
+    fetchChallenges();
+  }, []);
 
   const [activeMovies] = useState([
     { title: "Tenet", progress: 35 },

@@ -39,8 +39,6 @@ export function HomePageManager() {
   const [featuredPeriod, setFeaturedPeriod] = useState<'month' | 'week'>('month');
 
   const [watchlist, setWatchlist] = useState<Movie[]>([]);
-  const [recentFavourites, setRecentFavourites] = useState<Movie[]>([]);
-  const [tenForAllTime, setTenForAllTime] = useState<Movie[]>([]);
 
   const [socialHandles, setSocialHandles] = useState({
     instagram: '',
@@ -90,14 +88,6 @@ export function HomePageManager() {
           setWatchlist(data.watchlist);
         }
 
-        if (data.recent_favourites) {
-          setRecentFavourites(data.recent_favourites);
-        }
-
-        if (data.ten_for_all_time) {
-          setTenForAllTime(data.ten_for_all_time);
-        }
-
         setSocialHandles({
           instagram: data.instagram_handle || '',
           facebook: data.facebook_handle || '',
@@ -136,8 +126,6 @@ export function HomePageManager() {
           movie_of_month: movieOfMonth,
           featured_period: featuredPeriod,
           watchlist: watchlist,
-          recent_favourites: recentFavourites,
-          ten_for_all_time: tenForAllTime,
           instagram_handle: socialHandles.instagram,
           facebook_handle: socialHandles.facebook,
           youtube_handle: socialHandles.youtube,
@@ -172,38 +160,6 @@ export function HomePageManager() {
     const updated = [...watchlist];
     updated[index] = { ...updated[index], [field]: value };
     setWatchlist(updated);
-  };
-
-  const addToRecentFavourites = () => {
-    if (recentFavourites.length < 3) {
-      setRecentFavourites([...recentFavourites, { title: '', director: '', poster_url: '', year: new Date().getFullYear() }]);
-    }
-  };
-
-  const removeFromRecentFavourites = (index: number) => {
-    setRecentFavourites(recentFavourites.filter((_, i) => i !== index));
-  };
-
-  const updateRecentFavouritesItem = (index: number, field: keyof Movie, value: string | number) => {
-    const updated = [...recentFavourites];
-    updated[index] = { ...updated[index], [field]: value };
-    setRecentFavourites(updated);
-  };
-
-  const addToTenForAllTime = () => {
-    if (tenForAllTime.length < 10) {
-      setTenForAllTime([...tenForAllTime, { title: '', director: '', poster_url: '', year: new Date().getFullYear() }]);
-    }
-  };
-
-  const removeFromTenForAllTime = (index: number) => {
-    setTenForAllTime(tenForAllTime.filter((_, i) => i !== index));
-  };
-
-  const updateTenForAllTimeItem = (index: number, field: keyof Movie, value: string | number) => {
-    const updated = [...tenForAllTime];
-    updated[index] = { ...updated[index], [field]: value };
-    setTenForAllTime(updated);
   };
 
   if (!isSupabaseConfigured()) {
@@ -414,126 +370,6 @@ export function HomePageManager() {
               className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
             />
           </div>
-        </div>
-      </div>
-
-      {/* Recent Favourites */}
-      <div className="bg-card rounded-lg border border-border p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl text-foreground">Recent Favourites (Max 3)</h2>
-          <button
-            onClick={addToRecentFavourites}
-            disabled={recentFavourites.length >= 3}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            Add Movie
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {recentFavourites.map((movie, index) => (
-            <div key={index} className="bg-muted rounded-lg p-4">
-              <div className="flex items-start gap-4">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <input
-                    type="text"
-                    value={movie.title}
-                    onChange={(e) => updateRecentFavouritesItem(index, 'title', e.target.value)}
-                    placeholder="Movie Title"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={movie.director || ''}
-                    onChange={(e) => updateRecentFavouritesItem(index, 'director', e.target.value)}
-                    placeholder="Director"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={movie.poster_url}
-                    onChange={(e) => updateRecentFavouritesItem(index, 'poster_url', e.target.value)}
-                    placeholder="Poster URL"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="number"
-                    value={movie.year || ''}
-                    onChange={(e) => updateRecentFavouritesItem(index, 'year', parseInt(e.target.value) || new Date().getFullYear())}
-                    placeholder="Year"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                </div>
-                <button
-                  onClick={() => removeFromRecentFavourites(index)}
-                  className="p-2 text-destructive hover:bg-destructive/10 rounded-lg"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 10 for All Time */}
-      <div className="bg-card rounded-lg border border-border p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl text-foreground">10 for All Time (Max 10)</h2>
-          <button
-            onClick={addToTenForAllTime}
-            disabled={tenForAllTime.length >= 10}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
-          >
-            <Plus className="w-4 h-4" />
-            Add Movie
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {tenForAllTime.map((movie, index) => (
-            <div key={index} className="bg-muted rounded-lg p-4">
-              <div className="flex items-start gap-4">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <input
-                    type="text"
-                    value={movie.title}
-                    onChange={(e) => updateTenForAllTimeItem(index, 'title', e.target.value)}
-                    placeholder="Movie Title"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={movie.director || ''}
-                    onChange={(e) => updateTenForAllTimeItem(index, 'director', e.target.value)}
-                    placeholder="Director"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="text"
-                    value={movie.poster_url}
-                    onChange={(e) => updateTenForAllTimeItem(index, 'poster_url', e.target.value)}
-                    placeholder="Poster URL"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                  <input
-                    type="number"
-                    value={movie.year || ''}
-                    onChange={(e) => updateTenForAllTimeItem(index, 'year', parseInt(e.target.value) || new Date().getFullYear())}
-                    placeholder="Year"
-                    className="px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
-                  />
-                </div>
-                <button
-                  onClick={() => removeFromTenForAllTime(index)}
-                  className="p-2 text-destructive hover:bg-destructive/10 rounded-lg"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 

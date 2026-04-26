@@ -1,11 +1,35 @@
 import { useState } from 'react';
-import { Upload, Download } from 'lucide-react';
+import { Upload, Download, Trash2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../../lib/supabase';
 import { toast } from 'sonner';
+
+// TMDB API key - replace with your own or use environment variable
+const TMDB_API_KEY = ''; // Add your TMDB API key here
 
 export function CSVImporter() {
   const [importing, setImporting] = useState(false);
   const [preview, setPreview] = useState<any[]>([]);
+  const [deleting, setDeleting] = useState(false);
+
+  const fetchPosterFromTMDB = async (title: string, year: number): Promise<string> => {
+    if (!TMDB_API_KEY) return '';
+
+    try {
+      const response = await fetch(
+        `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(title)}&year=${year}`
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        const posterPath = data.results[0].poster_path;
+        return posterPath ? `https://image.tmdb.org/t/p/w500${posterPath}` : '';
+      }
+    } catch (error) {
+      console.error('Error fetching poster:', error);
+    }
+
+    return '';
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -48,37 +72,107 @@ export function CSVImporter() {
       reader.onload = async (event) => {
         const csv = event.target?.result as string;
         const lines = csv.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim());
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
 
-        const movies = lines.slice(1)
-          .filter(line => line.trim())
-          .map(line => {
-            const values = line.split(',');
-            const obj: any = {};
-            headers.forEach((header, i) => {
-              obj[header] = values[i]?.trim();
-            });
-            return obj;
-          })
-          .map(row => ({
-            title: row['Name'] || row['Title'],
-            director: row['Director'] || '',
-            year: parseInt(row['Year']) || new Date().getFullYear(),
-            rating: parseFloat(row['Rating']) || 0,
-            date_watched: row['Watched Date'] || row['Date'] || new Date().toISOString().split('T')[0],
-            runtime: parseInt(row['Runtime']) || null,
-            genre: row['Genre'] || row['Genres'] || '',
-            poster_url: row['Poster'] || '',
-            review: row['Review'] || ''
-          }));
+        // Get existing movies to check for duplicates
+        const { data: existingMovies } = await supabase
+          .from('movies')
+          .select('title, year, date_watched');
+
+        const existingSet = new Set(
+          existingMovies?.map(m => `${m.title.toLowerCase()}_${m.year}_${m.date_watched}`) || []
+        );
+
+        const moviesToImport = [];
+        let skippedCount = 0;
+        let postersFetched = 0;
+
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          // Parse CSV line handling quoted values
+          const values: string[] = [];
+          let current = '';
+          let inQuotes = false;
+
+          for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          values.push(current.trim());
+
+          const obj: any = {};
+          headers.forEach((header, idx) => {
+            obj[header] = values[idx]?.replace(/"/g, '') || '';
+          });
+
+          // Map Letterboxd fields
+          const title = obj['Name'] || obj['Title'] || '';
+          const year = parseInt(obj['Year']) || new Date().getFullYear();
+          const dateWatched = obj['Watched Date'] || obj['Date'] || new Date().toISOString().split('T')[0];
+
+          // Check for duplicates
+          const duplicateKey = `${title.toLowerCase()}_${year}_${dateWatched}`;
+          if (existingSet.has(duplicateKey)) {
+            skippedCount++;
+            continue;
+          }
+
+          // Parse rating (Letterboxd uses 0-5 scale, sometimes with stars)
+          let rating = 0;
+          const ratingStr = obj['Rating'] || obj['Letterboxd Rating'] || '';
+          if (ratingStr) {
+            // Remove any star symbols and parse
+            const numericRating = parseFloat(ratingStr.replace(/★/g, '').trim());
+            rating = isNaN(numericRating) ? 0 : numericRating;
+          }
+
+          // Fetch poster if TMDB key is available and no poster URL provided
+          let posterUrl = obj['Poster'] || '';
+          if (!posterUrl && title && year && TMDB_API_KEY) {
+            posterUrl = await fetchPosterFromTMDB(title, year);
+            if (posterUrl) postersFetched++;
+          }
+
+          const movie = {
+            title,
+            director: obj['Directors'] || obj['Director'] || '',
+            year,
+            rating,
+            date_watched: dateWatched,
+            runtime: parseInt(obj['Runtime (mins)'] || obj['Runtime']) || null,
+            genre: obj['Genres'] || obj['Genre'] || '',
+            poster_url: posterUrl,
+            review: obj['Review'] || obj['Notes'] || ''
+          };
+
+          moviesToImport.push(movie);
+          existingSet.add(duplicateKey); // Prevent duplicates within the same import
+        }
+
+        if (moviesToImport.length === 0) {
+          toast.info(`All ${skippedCount} movies already exist in database`);
+          setPreview([]);
+          setImporting(false);
+          return;
+        }
 
         const { error } = await supabase
           .from('movies')
-          .insert(movies);
+          .insert(moviesToImport);
 
         if (error) throw error;
 
-        toast.success(`Successfully imported ${movies.length} movies!`);
+        const message = `Successfully imported ${moviesToImport.length} movies!${skippedCount > 0 ? ` (Skipped ${skippedCount} duplicates)` : ''}${postersFetched > 0 ? ` (Fetched ${postersFetched} posters)` : ''}`;
+        toast.success(message);
         setPreview([]);
       };
       reader.readAsText(file);
@@ -86,6 +180,39 @@ export function CSVImporter() {
       toast.error(`Import failed: ${error.message}`);
     } finally {
       setImporting(false);
+    }
+  };
+
+  const deleteAllMovies = async () => {
+    if (!confirm('Are you absolutely sure you want to delete ALL logged movies? This cannot be undone!')) {
+      return;
+    }
+
+    if (!confirm('Seriously? This will permanently delete everything. Type DELETE in the next prompt to confirm.')) {
+      return;
+    }
+
+    const userInput = prompt('Type DELETE to confirm deletion of all movies:');
+    if (userInput !== 'DELETE') {
+      toast.info('Deletion cancelled');
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      const { error } = await supabase
+        .from('movies')
+        .delete()
+        .neq('id', 0); // Delete all rows
+
+      if (error) throw error;
+
+      toast.success('All movies have been deleted');
+    } catch (error: any) {
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -184,15 +311,31 @@ Parasite,Bong Joon-ho,2019,5.0,2024-01-20,132,Thriller,https://image.tmdb.org/t/
 
       <div className="bg-card rounded-lg border border-border p-6">
         <h3 className="text-foreground mb-3">CSV Format</h3>
-        <p className="text-muted-foreground mb-3">Your CSV should include these columns:</p>
+        <p className="text-muted-foreground mb-3">Supports Letterboxd exports (watched or diary) and custom format:</p>
         <div className="bg-muted rounded-lg p-4">
           <code className="text-foreground text-sm">
-            Name, Director, Year, Rating, Watched Date, Runtime, Genre, Poster, Review
+            Name, Directors, Year, Rating, Watched Date, Runtime (mins), Genres, Review
           </code>
         </div>
         <p className="text-muted-foreground mt-3 text-sm">
-          Note: Also compatible with Letterboxd export format
+          <strong>Note:</strong> Import automatically skips duplicates and can fetch movie posters from TMDB if API key is configured.
         </p>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
+        <h3 className="text-destructive mb-3 font-semibold">Danger Zone</h3>
+        <p className="text-muted-foreground mb-4">
+          Permanently delete all logged movies from the database. This action cannot be undone.
+        </p>
+        <button
+          onClick={deleteAllMovies}
+          disabled={deleting}
+          className="flex items-center gap-2 px-6 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50"
+        >
+          <Trash2 className="w-4 h-4" />
+          {deleting ? 'Deleting...' : 'Delete All Movies'}
+        </button>
       </div>
     </div>
   );

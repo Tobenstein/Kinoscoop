@@ -1,96 +1,117 @@
 import { Film, Heart, Star, Mail, Globe, Instagram, Youtube, ChevronDown, User } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 import { StarRating } from '../components/StarRating';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export function About() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-  // Recent Favourites - last 3 favorite movies
-  const recentFavourites = [
+  // Recent Favourites and 10 for All Time - now loaded from Supabase with fallback to defaults
+  const [recentFavourites, setRecentFavourites] = useState([
     {
-      title: "Oppenheimer",
-      posterUrl: "https://image.tmdb.org/t/p/w500/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+      title: "A Tale of Summer",
+      poster_url: "https://image.tmdb.org/t/p/w500/gDNpFRRFoN5ZXNYpWuWe0zt3Dvh.jpg",
       rating: 5.0,
-      year: 2023
+      year: 1996
     },
     {
-      title: "Parasite",
-      posterUrl: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-      rating: 5.0,
-      year: 2019
-    },
-    {
-      title: "The Dark Knight",
-      posterUrl: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
+      title: "Ghost Dog: The Way of the Samurai",
+      poster_url: "https://image.tmdb.org/t/p/w500/nOMqkW1eGBj4p1gkFaJJjhh5mNR.jpg",
       rating: 4.75,
-      year: 2008
-    }
-  ];
-
-  // 10 for All Time - top 10 favorite movies
-  const tenForAllTime = [
-    {
-      title: "The Shawshank Redemption",
-      posterUrl: "https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg",
-      rating: 5.0,
-      year: 1994
-    },
-    {
-      title: "The Godfather",
-      posterUrl: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-      rating: 5.0,
-      year: 1972
-    },
-    {
-      title: "Pulp Fiction",
-      posterUrl: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
-      rating: 5.0,
-      year: 1994
-    },
-    {
-      title: "Inception",
-      posterUrl: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
-      rating: 4.75,
-      year: 2010
-    },
-    {
-      title: "Goodfellas",
-      posterUrl: "https://image.tmdb.org/t/p/w500/aKuFiU82s5ISJpGZp7YkIr3kCUd.jpg",
-      rating: 4.75,
-      year: 1990
-    },
-    {
-      title: "Se7en",
-      posterUrl: "https://image.tmdb.org/t/p/w500/6yoghtyTpznpBik8EngEmJskVUO.jpg",
-      rating: 4.75,
-      year: 1995
-    },
-    {
-      title: "The Silence of the Lambs",
-      posterUrl: "https://image.tmdb.org/t/p/w500/uS9m8OBk1A8eM9I042bx8XXpqAq.jpg",
-      rating: 4.75,
-      year: 1991
-    },
-    {
-      title: "Fight Club",
-      posterUrl: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
-      rating: 4.5,
       year: 1999
     },
     {
-      title: "Forrest Gump",
-      posterUrl: "https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",
-      rating: 4.5,
+      title: "Denmark",
+      poster_url: "https://image.tmdb.org/t/p/w500/xZGUTyFh9AhxHlgDgXchBj2zlp7.jpg",
+      rating: 4.75,
+      year: 2019
+    }
+  ]);
+
+  const [tenForAllTime, setTenForAllTime] = useState([
+    {
+      title: "Marius",
+      poster_url: "https://image.tmdb.org/t/p/w500/wDqYGT8A4YjJznWmNdp1u3Z7RbX.jpg",
+      rating: 5.0,
+      year: 1931
+    },
+    {
+      title: "It Turned Out Nice Again",
+      poster_url: "https://image.tmdb.org/t/p/w500/aUmG2nY0QCRe0NdDrz4BNxS0G1w.jpg",
+      rating: 5.0,
+      year: 1941
+    },
+    {
+      title: "Three Colours: White",
+      poster_url: "https://image.tmdb.org/t/p/w500/6viBH4TzCofiux76n1j1b7xjW0c.jpg",
+      rating: 5.0,
       year: 1994
     },
     {
+      title: "The NeverEnding Story",
+      poster_url: "https://image.tmdb.org/t/p/w500/6O3l0mOwXKj6r9VWaTXkNgCxgBl.jpg",
+      rating: 5.0,
+      year: 1984
+    },
+    {
+      title: "The Mothman Prophecies",
+      poster_url: "https://image.tmdb.org/t/p/w500/jvtKY7pWcVo4GWbgCZ6F7RXZQqH.jpg",
+      rating: 5.0,
+      year: 2002
+    },
+    {
       title: "Interstellar",
-      posterUrl: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-      rating: 4.5,
+      poster_url: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
+      rating: 5.0,
       year: 2014
+    },
+    {
+      title: "The Good, the Bad and the Ugly",
+      poster_url: "https://image.tmdb.org/t/p/w500/bX2xnavhMYjWDoZp1VM6VnU1xwe.jpg",
+      rating: 5.0,
+      year: 1966
+    },
+    {
+      title: "The 10th Kingdom",
+      poster_url: "https://image.tmdb.org/t/p/w500/cCb8AF7FPSJiZ9PAgOaGLBsyPRM.jpg",
+      rating: 5.0,
+      year: 2000
+    },
+    {
+      title: "Willy Wonka & the Chocolate Factory",
+      poster_url: "https://image.tmdb.org/t/p/w500/vzVic5LiqcDYRsLmk01J0wd8wF5.jpg",
+      rating: 5.0,
+      year: 1971
     }
-  ];
+  ]);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    const fetchAboutContent = async () => {
+      const { data, error } = await supabase
+        .from('about_page_content')
+        .select('*')
+        .single();
+
+      if (error) {
+        console.error('Error fetching about content:', error);
+        return;
+      }
+
+      if (data) {
+        if (data.recent_favourites && data.recent_favourites.length > 0) {
+          setRecentFavourites(data.recent_favourites);
+        }
+        if (data.ten_for_all_time && data.ten_for_all_time.length > 0) {
+          setTenForAllTime(data.ten_for_all_time);
+        }
+      }
+    };
+
+    fetchAboutContent();
+  }, []);
 
   const faqs = [
     {
@@ -296,7 +317,7 @@ export function About() {
             >
               <div className="relative overflow-hidden rounded-lg shadow-md mb-3 transition-transform group-hover:scale-105">
                 <ImageWithFallback
-                  src={movie.posterUrl}
+                  src={movie.poster_url}
                   alt={movie.title}
                   className="w-full h-72 object-cover"
                 />
@@ -323,7 +344,7 @@ export function About() {
             >
               <div className="relative overflow-hidden rounded-lg shadow-md mb-3 transition-transform group-hover:scale-105">
                 <ImageWithFallback
-                  src={movie.posterUrl}
+                  src={movie.poster_url}
                   alt={movie.title}
                   className="w-full h-72 object-cover"
                 />
