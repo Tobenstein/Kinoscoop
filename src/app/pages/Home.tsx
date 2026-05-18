@@ -47,7 +47,19 @@ export function Home() {
     posterUrl: "https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg",
     progress: 45,
     year: 1994,
-    runtime: 142
+    runtime: 142,
+    synopsis: "Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency."
+  });
+
+  const [currentFocus, setCurrentFocus] = useState({
+    title: 'Christopher Nolan Films',
+    description: 'Exploring the complete filmography of one of cinema\'s most innovative directors',
+    movies: [
+      { title: 'Tenet', progress: 35 },
+      { title: 'The Dark Knight Rises', progress: 0 },
+      { title: 'Dunkirk', progress: 100 },
+      { title: 'Memento', progress: 100 }
+    ]
   });
 
   const [movieOfTheMonth, setMovieOfTheMonth] = useState<Movie>({
@@ -249,7 +261,8 @@ export function Home() {
               posterUrl: data.currently_watching.poster_url,
               progress: data.currently_watching.progress,
               year: data.currently_watching.year,
-              runtime: data.currently_watching.runtime
+              runtime: data.currently_watching.runtime,
+              synopsis: data.currently_watching.synopsis
             });
           }
 
@@ -323,6 +336,16 @@ export function Home() {
             finishDate: new Date(movie.date_watched).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
             year: movie.year
           })));
+        }
+
+        // Fetch current focus from challenges_config
+        const { data: focusData, error: focusError } = await supabase
+          .from('challenges_config')
+          .select('current_focus')
+          .single();
+
+        if (!focusError && focusData && focusData.current_focus) {
+          setCurrentFocus(focusData.current_focus);
         }
       } catch (error) {
         // Supabase not configured, use default data
@@ -498,7 +521,7 @@ export function Home() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         {/* Now Playing */}
-        <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-4 md:p-6">
+        <div className="lg:col-span-2 bg-card rounded-xl shadow-sm border border-border p-4 md:p-6 overflow-hidden">
           <div className="flex items-center gap-2 mb-6">
             <Film className="w-5 h-5 text-primary" />
             <h2 className="text-foreground">Now Playing</h2>
@@ -515,66 +538,107 @@ export function Home() {
 
             <div className="flex-1 flex flex-col">
               <h3 className="text-foreground mb-1">{currentlyWatching.title}</h3>
-              <p className="text-muted-foreground mb-4">directed by {currentlyWatching.director}</p>
+              <p className="text-muted-foreground mb-3">directed by {currentlyWatching.director}</p>
 
-              <div className="space-y-3 mb-4">
+              <div className="space-y-2 mb-3">
                 <div>
-                  <div className="flex justify-between text-muted-foreground mb-2">
+                  <div className="flex justify-between text-muted-foreground mb-1.5 text-sm">
                     <span>Watch Progress</span>
                     <span>{currentlyWatching.progress}%</span>
                   </div>
-                  <div className="w-full bg-muted rounded-full h-3">
+                  <div className="w-[85%] bg-muted rounded-full h-2">
                     <div
-                      className="bg-primary h-3 rounded-full transition-all"
+                      className="bg-primary h-2 rounded-full transition-all"
                       style={{ width: `${currentlyWatching.progress}%` }}
                     />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <Clock className="w-4 h-4" />
                   <span>{currentlyWatching.runtime} minutes • {currentlyWatching.year}</span>
                 </div>
               </div>
 
-              {/* Recently Watched nested inside */}
-              {recentlyWatched.length > 0 && (
-                <div className="border-t border-border pt-4 mt-auto">
-                  <h3 className="text-sm text-muted-foreground mb-3">Recently Watched</h3>
-                  <div className="overflow-x-auto scrollbar-hide -mx-2 px-2">
-                    <style>{`
-                      .scrollbar-hide::-webkit-scrollbar {
-                        display: none;
-                      }
-                    `}</style>
-                    <div className="flex gap-3" style={{ width: 'max-content' }}>
-                      {recentlyWatched.slice(0, 10).map((movie) => (
-                        <div
-                          key={movie.id}
-                          className="group cursor-pointer flex-shrink-0"
-                          style={{ width: '90px' }}
-                        >
-                          <div className="relative overflow-hidden rounded-md shadow-sm mb-1.5 transition-transform group-hover:scale-105">
-                            <ImageWithFallback
-                              src={movie.posterUrl}
-                              alt={movie.title}
-                              className="w-full h-32 object-cover"
-                            />
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-                          </div>
-                          <h4 className="text-xs text-foreground mb-0.5 line-clamp-1 leading-tight">{movie.title}</h4>
-                          <div className="mb-0.5">
-                            <StarRating rating={movie.rating || 0} size={10} />
-                          </div>
-                          <p className="text-muted-foreground italic text-xs">
-                            {movie.finishDate}
-                          </p>
+              {/* Movie Synopsis/Blurb */}
+              <div className="mb-4 border-t border-border pt-3">
+                <h4 className="text-xs font-semibold text-muted-foreground mb-2">About This Film</h4>
+                <p className="text-sm text-muted-foreground">
+                  {currentlyWatching.synopsis || 'No synopsis available yet.'}
+                </p>
+              </div>
+
+              {/* Current Challenge - Scaled Down Version */}
+              <div className="bg-gradient-to-br from-secondary/50 to-accent/50 rounded-lg border border-border p-4 mt-auto">
+                <h3 className="text-sm font-semibold text-foreground mb-2">Current Challenge: {currentFocus.title}</h3>
+                <p className="text-xs text-muted-foreground mb-3">{currentFocus.description}</p>
+
+                <div className="space-y-2">
+                  {currentFocus.movies.slice(0, 3).map((movie, index) => (
+                    <div key={index} className="bg-background/30 rounded px-3 py-2">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-xs text-foreground">{movie.title}</span>
+                        <span className="text-xs text-foreground">
+                          {movie.progress === 100 ? '✓' : movie.progress === 0 ? 'Not Started' : `${movie.progress}%`}
+                        </span>
+                      </div>
+                      {movie.progress > 0 && movie.progress < 100 && (
+                        <div className="w-full bg-muted rounded-full h-1.5">
+                          <div
+                            className="bg-primary h-1.5 rounded-full"
+                            style={{ width: `${movie.progress}%` }}
+                          />
                         </div>
-                      ))}
+                      )}
                     </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* HIDDEN: Recently Watched wheel - kept for potential future use */}
+              {/* {recentlyWatched.length > 0 && (
+                <div className="border-t border-border pt-3 mt-auto min-w-0">
+                  <h3 className="text-sm text-muted-foreground mb-3">Recently Watched</h3>
+                  <div className="relative">
+                    <div className="overflow-x-auto scrollbar-hide -mx-2 px-2">
+                      <style>{`
+                        .scrollbar-hide::-webkit-scrollbar {
+                          display: none;
+                        }
+                        .scrollbar-hide {
+                          -ms-overflow-style: none;
+                          scrollbar-width: none;
+                        }
+                      `}</style>
+                      <div className="flex gap-3 pb-1">
+                        {recentlyWatched.map((movie) => (
+                          <div
+                            key={movie.id}
+                            className="group cursor-pointer flex-shrink-0 w-[85px]"
+                          >
+                            <div className="relative overflow-hidden rounded-md shadow-sm mb-1.5 transition-transform group-hover:scale-105">
+                              <ImageWithFallback
+                                src={movie.posterUrl}
+                                alt={movie.title}
+                                className="w-full h-32 object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                            </div>
+                            <h4 className="text-xs text-foreground mb-0.5 line-clamp-1 leading-tight">{movie.title}</h4>
+                            <div className="mb-0.5">
+                              <StarRating rating={movie.rating || 0} size={9} />
+                            </div>
+                            <p className="text-muted-foreground italic text-xs">
+                              {movie.finishDate}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-card to-transparent pointer-events-none" />
                   </div>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
         </div>

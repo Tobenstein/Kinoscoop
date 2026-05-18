@@ -14,26 +14,45 @@ interface Challenge {
   completed: boolean;
 }
 
+interface CurrentFocusMovie {
+  title: string;
+  progress: number;
+}
+
+interface CurrentFocus {
+  title: string;
+  description: string;
+  movies: CurrentFocusMovie[];
+}
+
 export function ChallengesManager() {
   const [loading, setLoading] = useState(false);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [currentFocus, setCurrentFocus] = useState<CurrentFocus>({
+    title: 'Christopher Nolan Films',
+    description: 'Exploring the complete filmography of one of cinema\'s most innovative directors',
+    movies: [
+      { title: 'Tenet', progress: 35 },
+      { title: 'The Dark Knight Rises', progress: 0 },
+      { title: 'Dunkirk', progress: 100 },
+      { title: 'Memento', progress: 100 }
+    ]
+  });
 
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
-    const fetchChallenges = async () => {
-      const { data, error } = await supabase
+    const fetchData = async () => {
+      // Fetch challenges
+      const { data: challengesData, error: challengesError } = await supabase
         .from('challenges')
         .select('*')
         .order('id');
 
-      if (error) {
-        console.error('Error fetching challenges:', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setChallenges(data);
+      if (challengesError) {
+        console.error('Error fetching challenges:', challengesError);
+      } else if (challengesData && challengesData.length > 0) {
+        setChallenges(challengesData);
       } else {
         // Set default challenges if none exist
         setChallenges([
@@ -88,10 +107,49 @@ export function ChallengesManager() {
           }
         ]);
       }
+
+      // Fetch current focus
+      const { data: focusData, error: focusError } = await supabase
+        .from('challenges_config')
+        .select('current_focus')
+        .single();
+
+      if (focusError) {
+        console.error('Error fetching current focus:', focusError);
+      } else if (focusData && focusData.current_focus) {
+        setCurrentFocus(focusData.current_focus);
+      }
     };
 
-    fetchChallenges();
+    fetchData();
   }, []);
+
+  const handleSaveFocus = async () => {
+    if (!isSupabaseConfigured()) {
+      toast.error('Supabase is not configured');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('challenges_config')
+        .upsert({
+          id: 1,
+          current_focus: currentFocus,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast.success('Current Focus saved successfully!');
+    } catch (error: any) {
+      toast.error(`Error saving focus: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!isSupabaseConfigured()) {
@@ -153,6 +211,26 @@ export function ChallengesManager() {
     setChallenges(updated);
   };
 
+  const addFocusMovie = () => {
+    setCurrentFocus({
+      ...currentFocus,
+      movies: [...currentFocus.movies, { title: '', progress: 0 }]
+    });
+  };
+
+  const removeFocusMovie = (index: number) => {
+    setCurrentFocus({
+      ...currentFocus,
+      movies: currentFocus.movies.filter((_, i) => i !== index)
+    });
+  };
+
+  const updateFocusMovie = (index: number, field: keyof CurrentFocusMovie, value: string | number) => {
+    const updated = [...currentFocus.movies];
+    updated[index] = { ...updated[index], [field]: value };
+    setCurrentFocus({ ...currentFocus, movies: updated });
+  };
+
   if (!isSupabaseConfigured()) {
     return (
       <div className="bg-card rounded-lg border border-border p-6">
@@ -175,6 +253,91 @@ export function ChallengesManager() {
           Add Challenge
         </button>
       </div>
+
+      {/* Current Focus Section */}
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h3 className="text-xl text-foreground mb-4">Current Focus</h3>
+
+        <div className="space-y-4 mb-4">
+          <div>
+            <label className="block text-foreground mb-2">Focus Title</label>
+            <input
+              type="text"
+              value={currentFocus.title}
+              onChange={(e) => setCurrentFocus({ ...currentFocus, title: e.target.value })}
+              placeholder="e.g., Christopher Nolan Films"
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+
+          <div>
+            <label className="block text-foreground mb-2">Description</label>
+            <textarea
+              value={currentFocus.description}
+              onChange={(e) => setCurrentFocus({ ...currentFocus, description: e.target.value })}
+              placeholder="Brief description of the current focus"
+              rows={2}
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+        </div>
+
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-foreground">Movies/Items</label>
+            <button
+              onClick={addFocusMovie}
+              className="flex items-center gap-2 px-3 py-1 text-sm bg-accent text-accent-foreground rounded-lg hover:bg-secondary"
+            >
+              <Plus className="w-3 h-3" />
+              Add Item
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {currentFocus.movies.map((movie, index) => (
+              <div key={index} className="flex gap-3 items-center bg-muted rounded-lg p-3">
+                <input
+                  type="text"
+                  value={movie.title}
+                  onChange={(e) => updateFocusMovie(index, 'title', e.target.value)}
+                  placeholder="Movie/Item title"
+                  className="flex-1 px-3 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={movie.progress}
+                  onChange={(e) => updateFocusMovie(index, 'progress', parseInt(e.target.value) || 0)}
+                  placeholder="Progress %"
+                  className="w-24 px-3 py-2 bg-input-background border border-border rounded-lg text-foreground"
+                />
+                <button
+                  onClick={() => removeFocusMovie(index)}
+                  className="p-2 text-destructive hover:bg-destructive/10 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Save Current Focus Button */}
+        <div className="flex justify-end pt-4 border-t border-border">
+          <button
+            onClick={handleSaveFocus}
+            disabled={loading}
+            className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {loading ? 'Saving...' : 'Save Current Focus'}
+          </button>
+        </div>
+      </div>
+
+      <h3 className="text-xl text-foreground">Challenges List</h3>
 
       <div className="space-y-4">
         {challenges.map((challenge, index) => (

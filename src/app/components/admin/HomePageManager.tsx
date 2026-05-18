@@ -18,13 +18,14 @@ export function HomePageManager() {
   const [introText, setIntroText] = useState('');
   const [closingText, setClosingText] = useState('');
 
-  const [currentlyWatching, setCurrentlyWatching] = useState<Movie & { progress: number; runtime?: number }>({
+  const [currentlyWatching, setCurrentlyWatching] = useState<Movie & { progress: number; runtime?: number; synopsis?: string }>({
     title: '',
     director: '',
     poster_url: '',
     progress: 0,
     year: new Date().getFullYear(),
-    runtime: 120
+    runtime: 120,
+    synopsis: ''
   });
 
   const [movieOfMonth, setMovieOfMonth] = useState<Movie & { synopsis: string; review_id?: number }>({
@@ -285,6 +286,17 @@ export function HomePageManager() {
               type="number"
               value={currentlyWatching.runtime}
               onChange={(e) => setCurrentlyWatching({ ...currentlyWatching, runtime: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
+            />
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-foreground mb-2">Synopsis/Blurb</label>
+            <textarea
+              value={currentlyWatching.synopsis || ''}
+              onChange={(e) => setCurrentlyWatching({ ...currentlyWatching, synopsis: e.target.value })}
+              rows={3}
+              placeholder="Short description or notes about this movie..."
               className="w-full px-4 py-2 bg-input-background border border-border rounded-lg text-foreground"
             />
           </div>

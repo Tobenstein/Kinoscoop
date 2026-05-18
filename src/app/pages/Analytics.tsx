@@ -211,6 +211,51 @@ export function Analytics() {
     { rating: '<3.0', count: 2 }
   ];
 
+  const topCreators = [
+    {
+      name: 'Loren Bouchard',
+      movies: 12,
+      avgRating: 4.8,
+      filmography: [
+        { id: 1, title: "Bob's Burgers - S1", year: 2011, genre: 'Comedy', runtime: 22, rating: 4.75 },
+        { id: 2, title: "Bob's Burgers - S2", year: 2012, genre: 'Comedy', runtime: 22, rating: 4.75 },
+        { id: 3, title: "Bob's Burgers - S3", year: 2013, genre: 'Comedy', runtime: 22, rating: 5.0 },
+        { id: 4, title: "Bob's Burgers - S4", year: 2014, genre: 'Comedy', runtime: 22, rating: 4.75 }
+      ]
+    },
+    {
+      name: 'Greg Daniels',
+      movies: 9,
+      avgRating: 4.9,
+      filmography: [
+        { id: 5, title: 'The Office (US) - S1', year: 2005, genre: 'Sitcom', runtime: 22, rating: 4.5 },
+        { id: 6, title: 'The Office (US) - S2', year: 2006, genre: 'Sitcom', runtime: 22, rating: 5.0 },
+        { id: 7, title: 'The Office (US) - S3', year: 2007, genre: 'Sitcom', runtime: 22, rating: 5.0 },
+        { id: 8, title: 'The Office (US) - S4', year: 2008, genre: 'Sitcom', runtime: 22, rating: 4.75 }
+      ]
+    },
+    {
+      name: 'Julian Barratt & Noel Fielding',
+      movies: 6,
+      avgRating: 5.0,
+      filmography: [
+        { id: 9, title: 'The Mighty Boosh - S1', year: 2004, genre: 'Surreal Comedy', runtime: 28, rating: 5.0 },
+        { id: 10, title: 'The Mighty Boosh - S2', year: 2005, genre: 'Surreal Comedy', runtime: 28, rating: 5.0 },
+        { id: 11, title: 'The Mighty Boosh - S3', year: 2007, genre: 'Surreal Comedy', runtime: 28, rating: 5.0 }
+      ]
+    },
+    {
+      name: 'Graham Linehan',
+      movies: 5,
+      avgRating: 4.7,
+      filmography: [
+        { id: 12, title: 'The IT Crowd - S1', year: 2006, genre: 'Sitcom', runtime: 25, rating: 4.75 },
+        { id: 13, title: 'The IT Crowd - S2', year: 2007, genre: 'Sitcom', runtime: 25, rating: 4.75 },
+        { id: 14, title: 'The IT Crowd - S3', year: 2008, genre: 'Sitcom', runtime: 25, rating: 4.5 }
+      ]
+    }
+  ];
+
   const topDirectors = [
     {
       name: 'Christopher Nolan',
@@ -346,8 +391,8 @@ export function Analytics() {
     totalRuntime: 8940, // in minutes
     averageRating: 4.3,
     showsThisMonth: 6,
-    longestShow: { title: 'The Office (US)', runtime: 22 },
-    shortestShow: { title: 'The IT Crowd', runtime: 25 },
+    longestShow: { title: 'The Office (US)', episodes: 201, avgRuntime: 22 },
+    shortestShow: { title: 'Derry Girls', episodes: 19, avgRuntime: 24 },
     highestRated: [
       { title: 'Flight of the Conchords', rating: 5.0, year: 2007 },
       { title: 'Derry Girls', rating: 5.0, year: 2018 },
@@ -607,11 +652,13 @@ export function Analytics() {
         </ResponsiveContainer>
       </div>
 
-      {/* Top Directors */}
+      {/* Top Directors/Creators */}
       <div className="bg-card rounded-xl shadow-sm border border-border p-6 mb-8">
-        <h2 className="text-xl text-foreground mb-6">Most Watched Directors</h2>
+        <h2 className="text-xl text-foreground mb-6">
+          {mediaType === 'movies' ? 'Most Watched Directors' : 'Most Watched Creators'}
+        </h2>
         <div className="space-y-4">
-          {topDirectors.map((director, index) => (
+          {(mediaType === 'movies' ? topDirectors : topCreators).map((director, index) => (
             <div key={index} className="bg-muted rounded-lg overflow-hidden">
               <div
                 onClick={() => setExpandedDirector(expandedDirector === index ? null : index)}
@@ -624,7 +671,7 @@ export function Analytics() {
                   <div>
                     <h3 className="text-foreground font-medium">{director.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {director.movies} {director.movies === 1 ? 'movie' : 'movies'} • Avg rating: {director.avgRating}
+                      {director.movies} {director.movies === 1 ? (mediaType === 'movies' ? 'movie' : 'show') : (mediaType === 'movies' ? 'movies' : 'shows')} • Avg rating: {director.avgRating}
                     </p>
                   </div>
                 </div>
@@ -695,20 +742,38 @@ export function Analytics() {
       {/* Fun Facts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-xl text-foreground mb-4">Longest Movie</h2>
-          <p className="text-2xl text-foreground font-semibold mb-2">{stats.longestMovie.title}</p>
-          <p className="text-muted-foreground">{formatRuntime(stats.longestMovie.runtime)}</p>
+          <h2 className="text-xl text-foreground mb-4">
+            {mediaType === 'movies' ? 'Longest Movie' : 'Most Episodes'}
+          </h2>
+          <p className="text-2xl text-foreground font-semibold mb-2">
+            {mediaType === 'movies' ? stats.longestMovie.title : stats.longestShow.title}
+          </p>
+          <p className="text-muted-foreground">
+            {mediaType === 'movies'
+              ? formatRuntime(stats.longestMovie.runtime)
+              : `${stats.longestShow.episodes} episodes (avg ${stats.longestShow.avgRuntime} min)`
+            }
+          </p>
         </div>
 
         <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
-          <h2 className="text-xl text-foreground mb-4">Shortest Movie</h2>
-          <p className="text-2xl text-foreground font-semibold mb-2">{stats.shortestMovie.title}</p>
-          <p className="text-muted-foreground">{formatRuntime(stats.shortestMovie.runtime)}</p>
+          <h2 className="text-xl text-foreground mb-4">
+            {mediaType === 'movies' ? 'Shortest Movie' : 'Fewest Episodes'}
+          </h2>
+          <p className="text-2xl text-foreground font-semibold mb-2">
+            {mediaType === 'movies' ? stats.shortestMovie.title : stats.shortestShow.title}
+          </p>
+          <p className="text-muted-foreground">
+            {mediaType === 'movies'
+              ? formatRuntime(stats.shortestMovie.runtime)
+              : `${stats.shortestShow.episodes} episodes (avg ${stats.shortestShow.avgRuntime} min)`
+            }
+          </p>
         </div>
       </div>
 
       {/* Highest and Lowest Rated */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6">
           <h2 className="text-xl text-foreground mb-4">Highest Rated</h2>
           <div className="space-y-3">
@@ -773,10 +838,10 @@ export function Analytics() {
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div>
                 <h2 className="text-2xl text-foreground mb-1">
-                  {timeRange === 'month' ? 'This Month' : 'This Year'} - Movies Archive
+                  {timeRange === 'month' ? 'This Month' : 'This Year'} - {mediaType === 'movies' ? 'Movies' : 'TV Shows'} Archive
                 </h2>
                 <p className="text-muted-foreground">
-                  {getFilteredMovies().length} {getFilteredMovies().length === 1 ? 'movie' : 'movies'} watched {timeRange === 'month' ? 'this month' : 'this year'}
+                  {getFilteredMovies().length} {getFilteredMovies().length === 1 ? (mediaType === 'movies' ? 'movie' : 'show') : (mediaType === 'movies' ? 'movies' : 'shows')} watched {timeRange === 'month' ? 'this month' : 'this year'}
                 </p>
               </div>
               <button

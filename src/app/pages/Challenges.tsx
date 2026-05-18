@@ -13,6 +13,17 @@ interface Challenge {
   completed: boolean;
 }
 
+interface CurrentFocusMovie {
+  title: string;
+  progress: number;
+}
+
+interface CurrentFocus {
+  title: string;
+  description: string;
+  movies: CurrentFocusMovie[];
+}
+
 export function Challenges() {
   const [challenges, setChallenges] = useState<Challenge[]>([
     {
@@ -72,10 +83,22 @@ export function Challenges() {
     }
   ]);
 
+  const [currentFocus, setCurrentFocus] = useState<CurrentFocus>({
+    title: 'Christopher Nolan Films',
+    description: 'Exploring the complete filmography of one of cinema\'s most innovative directors',
+    movies: [
+      { title: 'Tenet', progress: 35 },
+      { title: 'The Dark Knight Rises', progress: 0 },
+      { title: 'Dunkirk', progress: 100 },
+      { title: 'Memento', progress: 100 }
+    ]
+  });
+
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
-    const fetchChallenges = async () => {
+    const fetchData = async () => {
+      // Fetch challenges
       const { data, error } = await supabase
         .from('challenges')
         .select('*')
@@ -83,23 +106,25 @@ export function Challenges() {
 
       if (error) {
         console.error('Error fetching challenges:', error);
-        return;
+      } else if (data && data.length > 0) {
+        setChallenges(data);
       }
 
-      if (data && data.length > 0) {
-        setChallenges(data);
+      // Fetch current focus
+      const { data: focusData, error: focusError } = await supabase
+        .from('challenges_config')
+        .select('current_focus')
+        .single();
+
+      if (focusError) {
+        console.error('Error fetching current focus:', focusError);
+      } else if (focusData && focusData.current_focus) {
+        setCurrentFocus(focusData.current_focus);
       }
     };
 
-    fetchChallenges();
+    fetchData();
   }, []);
-
-  const [activeMovies] = useState([
-    { title: "Tenet", progress: 35 },
-    { title: "The Dark Knight Rises", progress: 0 },
-    { title: "Dunkirk", progress: 100 },
-    { title: "Memento", progress: 100 }
-  ]);
 
   const calculateProgress = (current: number, goal: number) => {
     return Math.min((current / goal) * 100, 100);
@@ -146,6 +171,35 @@ export function Challenges() {
           </div>
           <p className="text-3xl text-foreground font-semibold">67</p>
           <p className="text-sm text-muted-foreground">this year</p>
+        </div>
+      </div>
+
+      {/* Current Focus */}
+      <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6 mb-8">
+        <h2 className="text-2xl text-foreground mb-4">Current Focus: {currentFocus.title}</h2>
+        <p className="text-foreground mb-6">
+          {currentFocus.description}
+        </p>
+
+        <div className="space-y-3">
+          {currentFocus.movies.map((movie, index) => (
+            <div key={index} className="bg-background/20 rounded-lg p-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-foreground">{movie.title}</span>
+                <span className="text-sm text-foreground">
+                  {movie.progress === 100 ? '✓' : movie.progress === 0 ? 'Not Started' : `${movie.progress}%`}
+                </span>
+              </div>
+              {movie.progress > 0 && movie.progress < 100 && (
+                <div className="w-full bg-muted rounded-full h-2">
+                  <div
+                    className="bg-primary h-2 rounded-full"
+                    style={{ width: `${movie.progress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -202,35 +256,6 @@ export function Challenges() {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Nolan Deep Dive Detail */}
-      <div className="bg-gradient-to-br from-secondary to-accent rounded-xl shadow-sm border border-border p-6 mb-8">
-        <h2 className="text-2xl text-foreground mb-4">Current Focus: Christopher Nolan Films</h2>
-        <p className="text-foreground mb-6">
-          Exploring the complete filmography of one of cinema's most innovative directors
-        </p>
-
-        <div className="space-y-3">
-          {activeMovies.map((movie, index) => (
-            <div key={index} className="bg-background/20 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-foreground">{movie.title}</span>
-                <span className="text-sm text-foreground">
-                  {movie.progress === 100 ? '✓' : movie.progress === 0 ? 'Not Started' : `${movie.progress}%`}
-                </span>
-              </div>
-              {movie.progress > 0 && movie.progress < 100 && (
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full"
-                    style={{ width: `${movie.progress}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
         </div>
       </div>
 
